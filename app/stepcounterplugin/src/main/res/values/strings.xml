@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">stepcounterplugin</string>
+    <string name="notification_title">Counting the steps…</string>
+    <string name="notification_message">Your number of step are collected in the background.</string>
+    <string name="channel_name">Information</string>
+    <string name="channel_description">Provide potentially useful information.</string>
+</resources>

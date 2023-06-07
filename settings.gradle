@@ -17,7 +17,7 @@ include ':app'
 include ':app:stepcounterplugin'
 
 include ':unityLibrary'
-project(':unityLibrary').projectDir=new File('/Users/aureliennioche/Documents/UnityProjects/Mapp/Builds/unityLibrary')
+project(':unityLibrary').projectDir=new File('/Users/aureliennioche/Documents/UnityProjects/MApp/Builds/unityLibrary')
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)

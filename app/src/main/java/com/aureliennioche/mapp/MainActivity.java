@@ -1,25 +1,54 @@
 package com.aureliennioche.mapp;
 
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
-@RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+import com.aureliennioche.stepcounterplugin.Bridge;
+import com.aureliennioche.stepcounterplugin.StepRecord;
+
+ import org.joda.time.DateTime;
+
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
-    String tag = this.getClass().getSimpleName();
+    String tag = "testing";  // this.getClass().getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(tag, "Start the MainActivity");
-        launchUnity();
+        // TODO: UNCOMMENT THIS
+        // launchUnity();
+
+        // TODO: REMOVE WHAT FOLLOWS
+        // Erase everything first (we might want to do something else later on)
+        // Log.d(tag, "Du passé faisons table rase");
+        // stepDao.nukeTable();
+
+        Bridge bridge = new Bridge(this);
+
+        bridge.addFakeRecord(34);
+
+        bridge.addFakeRecord(38);
+
+        bridge.logRecords(bridge.getAllRecords());
+
+        // StepRecord record = bridge.GetLastRecordOnDay(DateTime.now());
+        // Long value = System.currentTimeMillis();
+
+        DateTime dt =DateTime.now(Bridge.TIMEZONE);
+        int nStep = bridge.getStepNumberSinceMidnightThatDay(dt);
+        Log.d(tag, "Number of steps since midnight" + nStep);
+
+        Log.d(tag, "Testing recovering records" + nStep);
+        List<StepRecord> records = bridge.getRecordsNewerThan(DateTime.now(Bridge.TIMEZONE).minusMinutes(5));
+        bridge.logRecords(records);
     }
 
     public void launchUnity() {

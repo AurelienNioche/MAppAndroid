@@ -5,28 +5,44 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
-import java.sql.Date;
-
 @Entity
 public class StepRecord {
     @PrimaryKey(autoGenerate = true)
     public int id;
 
     @ColumnInfo()
-    public Date date;
+    public long timestamp;
 
-    @ColumnInfo(name = "step_number")
-    public int stepNumber;
+    @ColumnInfo()
+    public long lastBootTimestamp;
 
-    public StepRecord(int id, Date date, int stepNumber) {
+    @ColumnInfo() // name = "step_number"
+    public int stepNumberSinceLastBoot;
+
+    @ColumnInfo() // name = "step_number"
+    public int stepNumberSinceMidnight;
+
+    public StepRecord(int id,
+                      long timestamp,
+                      long lastBootTimestamp,
+                      int stepNumberSinceLastBoot,
+                      int stepNumberSinceMidnight
+                      ) {
         this.id = id;
-        this.date = date;
-        this.stepNumber = stepNumber;
+        this.timestamp = timestamp;
+        this.lastBootTimestamp = lastBootTimestamp;
+        this.stepNumberSinceLastBoot = stepNumberSinceLastBoot;
+        this.stepNumberSinceMidnight = stepNumberSinceMidnight;
     }
 
     @Ignore
-    public StepRecord(Date date, int stepNumber) {
-        this.date = date;
-        this.stepNumber = stepNumber;
+    public StepRecord(long timestamp,
+                      long lastBootTimestamp,
+                      int stepNumberSinceLastBoot,
+                      int stepNumberSinceMidnight) {
+        this.timestamp = timestamp;
+        this.lastBootTimestamp = lastBootTimestamp;
+        this.stepNumberSinceLastBoot = stepNumberSinceLastBoot;
+        this.stepNumberSinceMidnight = stepNumberSinceMidnight;
     }
 }

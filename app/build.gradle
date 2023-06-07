@@ -31,7 +31,7 @@ android {
 dependencies {
 
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.8.0'
+    implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation project(path: ':app:stepcounterplugin')
     testImplementation 'junit:junit:4.13.2'
@@ -65,4 +65,6 @@ dependencies {
 
     implementation project(':unityLibrary')
     implementation fileTree(dir: project(':unityLibrary').getProjectDir().toString() + ('\\libs'), include: ['*.jar'])
+
+    api 'joda-time:joda-time:2.12.5'
 }

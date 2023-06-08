@@ -25,7 +25,8 @@ public interface StepDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertStepRecord(StepRecord stepRecord);
 
-    @Query("DELETE FROM steprecord WHERE ts >= :lowerBound AND ts < :upperBound")
+    @Query("DELETE FROM steprecord WHERE ts >= :lowerBound AND ts < :upperBound " +
+            "AND stepMidnight % 100 != 0")  // We don't want to erase when 100's are reached so, we know when the goal was reached
     void deleteRecordsOnInterval(long lowerBound, long upperBound);
 
     @Query("DELETE FROM steprecord")

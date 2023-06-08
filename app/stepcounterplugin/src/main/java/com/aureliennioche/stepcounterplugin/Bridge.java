@@ -87,78 +87,78 @@ public class Bridge {
         return stepNumber;
     }
 
-    // --------------------------------------------------------------- //
-    // For debugging
-    // --------------------------------------------------------------- //
-
-    public void addFakeRecord(int sensorValue) {
-
-        long timestamp = System.currentTimeMillis();
-        long lastBootTimestamp = timestamp - SystemClock.elapsedRealtime();
-
-        DateTime dt = new DateTime(timestamp, TIMEZONE);
-        DateTime midnight = dt.withTimeAtStartOfDay();
-        long midnightTimestamp = midnight.getMillis();
-
-        int stepNumberSinceMidnight = 0; // Default if no recording, or no recording that day
-
-        List<StepRecord> records = stepDao.getLastRecord();
-        // If there is some record
-        if (records.size() > 0)
-        {
-            StepRecord ref = records.get(0);
-            // If there is some record /for today/
-            if (ref.ts > midnightTimestamp)
-            {
-                // If phone has been reboot in the between (leave some error margin),
-                // Then take the meter reading as the number of steps done since the last log
-                // So, steps since midnight is step since midnight from last log plus the meter reading
-                if (lastBootTimestamp > ref.tsLastBoot + 500) { // 500: error margin
-                    stepNumberSinceMidnight = ref.stepMidnight + sensorValue;
-                }
-                // If they were no boot, just consider the progression,
-                // and add it to the previous log
-                else
-                {
-                    stepNumberSinceMidnight = ref.stepMidnight
-                            + (sensorValue - ref.stepLastBoot);
-                }
-            }
-        }
-
-        // Record new entry
-        Log.d(tag, "Let's record new stuff");
-        stepDao.insertStepRecord(new StepRecord(
-                timestamp,
-                lastBootTimestamp,
-                sensorValue,
-                stepNumberSinceMidnight
-        ));
-
-        // Delete older ones within a 6 min range
-        long lowerBound = Math.max(midnightTimestamp, timestamp - MIN_DELAY_BETWEEN_TWO_RECORDS);
-        stepDao.deleteRecordsOnInterval(lowerBound, timestamp); // Upper bound is the timestamp of that recording
-    }
-
-    public List<StepRecord> getAllRecords() {
-        return stepDao.getAll();
-    }
-
-    public void logRecords(List<StepRecord> stepRecords) {
-        Log.d(tag, "Data base records are:");
-        for (StepRecord r : stepRecords) {
-            DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
-
-            DateTime dt = new DateTime(r.ts, TIMEZONE);
-            String timestamp = fmt.print(dt);
-
-            DateTime dtLb = new DateTime(r.tsLastBoot, TIMEZONE);
-            String lastBootTimestamp = fmt.print(dtLb);
-
-            String stepMid = String.valueOf(r.stepMidnight);
-            String stepBoot = String.valueOf(r.stepLastBoot);
-
-            Log.d(tag, "[" + timestamp + " | Last boot: "+ lastBootTimestamp +"] Steps since midnight: " + stepMid + "; Steps since last boot: " + stepBoot);
-        }
-    }
+//    // --------------------------------------------------------------- //
+//    // For debugging
+//    // --------------------------------------------------------------- //
+//
+//    public void addFakeRecord(int sensorValue) {
+//
+//        long timestamp = System.currentTimeMillis();
+//        long lastBootTimestamp = timestamp - SystemClock.elapsedRealtime();
+//
+//        DateTime dt = new DateTime(timestamp, TIMEZONE);
+//        DateTime midnight = dt.withTimeAtStartOfDay();
+//        long midnightTimestamp = midnight.getMillis();
+//
+//        int stepNumberSinceMidnight = 0; // Default if no recording, or no recording that day
+//
+//        List<StepRecord> records = stepDao.getLastRecord();
+//        // If there is some record
+//        if (records.size() > 0)
+//        {
+//            StepRecord ref = records.get(0);
+//            // If there is some record /for today/
+//            if (ref.ts > midnightTimestamp)
+//            {
+//                // If phone has been reboot in the between (leave some error margin),
+//                // Then take the meter reading as the number of steps done since the last log
+//                // So, steps since midnight is step since midnight from last log plus the meter reading
+//                if (lastBootTimestamp > ref.tsLastBoot + 500) { // 500: error margin
+//                    stepNumberSinceMidnight = ref.stepMidnight + sensorValue;
+//                }
+//                // If they were no boot, just consider the progression,
+//                // and add it to the previous log
+//                else
+//                {
+//                    stepNumberSinceMidnight = ref.stepMidnight
+//                            + (sensorValue - ref.stepLastBoot);
+//                }
+//            }
+//        }
+//
+//        // Record new entry
+//        Log.d(tag, "Let's record new stuff");
+//        stepDao.insertStepRecord(new StepRecord(
+//                timestamp,
+//                lastBootTimestamp,
+//                sensorValue,
+//                stepNumberSinceMidnight
+//        ));
+//
+//        // Delete older ones within a 6 min range
+//        long lowerBound = Math.max(midnightTimestamp, timestamp - MIN_DELAY_BETWEEN_TWO_RECORDS);
+//        stepDao.deleteRecordsOnInterval(lowerBound, timestamp); // Upper bound is the timestamp of that recording
+//    }
+//
+//    public List<StepRecord> getAllRecords() {
+//        return stepDao.getAll();
+//    }
+//
+//    public void logRecords(List<StepRecord> stepRecords) {
+//        Log.d(tag, "Data base records are:");
+//        for (StepRecord r : stepRecords) {
+//            DateTimeFormatter fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
+//
+//            DateTime dt = new DateTime(r.ts, TIMEZONE);
+//            String timestamp = fmt.print(dt);
+//
+//            DateTime dtLb = new DateTime(r.tsLastBoot, TIMEZONE);
+//            String lastBootTimestamp = fmt.print(dtLb);
+//
+//            String stepMid = String.valueOf(r.stepMidnight);
+//            String stepBoot = String.valueOf(r.stepLastBoot);
+//
+//            Log.d(tag, "[" + timestamp + " | Last boot: "+ lastBootTimestamp +"] Steps since midnight: " + stepMid + "; Steps since last boot: " + stepBoot);
+//        }
+//    }
 }

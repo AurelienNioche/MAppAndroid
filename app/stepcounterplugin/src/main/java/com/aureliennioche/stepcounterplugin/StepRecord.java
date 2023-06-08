@@ -11,38 +11,38 @@ public class StepRecord {
     public int id;
 
     @ColumnInfo()
-    public long timestamp;
+    public long ts;  // Timestamp of the recording
 
     @ColumnInfo()
-    public long lastBootTimestamp;
+    public long tsLastBoot; // Timestamp of the last boot
 
-    @ColumnInfo() // name = "step_number"
-    public int stepNumberSinceLastBoot;
+    @ColumnInfo()
+    public int stepLastBoot; // Number of step since the last boot
 
-    @ColumnInfo() // name = "step_number"
-    public int stepNumberSinceMidnight;
+    @ColumnInfo() //  Number of step since midnight (not hyper duper precise)
+    public int stepMidnight;
 
     public StepRecord(int id,
-                      long timestamp,
-                      long lastBootTimestamp,
-                      int stepNumberSinceLastBoot,
-                      int stepNumberSinceMidnight
+                      long ts,
+                      long tsLastBoot,
+                      int stepLastBoot,
+                      int stepMidnight
                       ) {
         this.id = id;
-        this.timestamp = timestamp;
-        this.lastBootTimestamp = lastBootTimestamp;
-        this.stepNumberSinceLastBoot = stepNumberSinceLastBoot;
-        this.stepNumberSinceMidnight = stepNumberSinceMidnight;
+        this.ts = ts;
+        this.tsLastBoot = tsLastBoot;
+        this.stepLastBoot = stepLastBoot;
+        this.stepMidnight = stepMidnight;
     }
 
     @Ignore
     public StepRecord(long timestamp,
-                      long lastBootTimestamp,
+                      long tsLastBoot,
                       int stepNumberSinceLastBoot,
-                      int stepNumberSinceMidnight) {
-        this.timestamp = timestamp;
-        this.lastBootTimestamp = lastBootTimestamp;
-        this.stepNumberSinceLastBoot = stepNumberSinceLastBoot;
-        this.stepNumberSinceMidnight = stepNumberSinceMidnight;
+                      int stepMidnight) {
+        this.ts = timestamp;
+        this.tsLastBoot = tsLastBoot;
+        this.stepLastBoot = stepNumberSinceLastBoot;
+        this.stepMidnight = stepMidnight;
     }
 }

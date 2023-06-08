@@ -12,15 +12,20 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
+
+import org.joda.time.DateTime;
+
+import java.util.List;
 
 public class StepService extends Service implements SensorEventListener {
     private static final int ONGOING_NOTIFICATION_ID = 1234;
     private static final String CHANNEL_ID = "channel_id";
 
     SensorManager sensorManager;
-    String tag = this.getClass().getSimpleName();
+    String tag = "testing"; // this.getClass().getSimpleName();
 
     StepDao stepDao;
 
@@ -31,7 +36,7 @@ public class StepService extends Service implements SensorEventListener {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(tag, "Service starting");
+        Log.d(tag, "onStartCommand => Service starting");
 
         createNotificationChannel();
 
@@ -71,9 +76,8 @@ public class StepService extends Service implements SensorEventListener {
 
     @Override
     public void onDestroy() {
-        Log.d(tag, "Service destroyed");
-        Toast.makeText(this, "Service destroyed", Toast.LENGTH_SHORT).show();
-
+        Log.d(tag, "onDestroy => Service destroyed");
+        Toast.makeText(this, "MApp step counter service has been killed!", Toast.LENGTH_SHORT).show();
         sensorManager.unregisterListener(this);
         super.onDestroy();
     }
@@ -95,12 +99,7 @@ public class StepService extends Service implements SensorEventListener {
     public void onSensorChanged(SensorEvent sensorEvent) {
         int sensorValue = (int) sensorEvent.values[0];
         Log.d(tag, "onSensorChanged: " + sensorValue);
-
-
-        // TODO: ERASE LAST 5 MIN RECORDS (EXCEPT BEFORE MIDNIGHT) BEFORE ADDING NEW ONE
-
-        // TODO: UNCOMMENT THIS
-        // recordNewSensorValue(sensorValue);
+        recordNewSensorValue(sensorValue);
     }
 
     @Override
@@ -112,40 +111,58 @@ public class StepService extends Service implements SensorEventListener {
         if (countSensor!=null){
             sensorManager.registerListener(this,countSensor,SensorManager.SENSOR_DELAY_UI);
         } else {
-            Log.e(tag, "Sensor not found");
+            Log.e(tag, "initSensorManager => Sensor not found");
         }
-        Log.d(tag, "Sensor manager initialized");
+        Log.d(tag, "initSensorManager => Sensor manager initialized");
     }
-//
-//    void recordNewSensorValue(int sensorValue) {
-//
-//        // Erase everything first (we might want to do something else later on)
-//        // Log.d(tag, "Du passé faisons table rase");
-//        // stepDao.nukeTable();
-//
-//        DateTimeZone timeZone = TIMEZONE;
-//        DateTime now = DateTime.now(timeZone).withTimeAtStartOfDay();
-//
-//        Long ref = now.getMillis();
-//        List<StepRecord> stepRecords = stepDao.GetRecordsNewerThan(ref);
-//        int value;
-//        if (stepRecords.size() > 0 ) {
-//            StepRecord firstStepRecord = stepRecords.get(0);
-//            value = sensorValue - firstStepRecord.stepNumber;
-//        }
-//        else
-//        {
-//            value = 0;
-//        }
-//
-//        // TODO: NOT RECORD EVERY TIME
-//
-//        Log.d(tag, "Let's record new stuff");
-//        Long ts = now.getMillis();
-//        stepDao.insertStepRecord(new StepRecord(ts, value));
-//
-//        // TODO: REMOVE LOG
-//         // Log what is already in the database (we might want to do something else later on)
-//        logRecords();
-//    }
+
+    void recordNewSensorValue(int sensorValue)
+    {
+        Log.d(tag, "recordNewSensorValue => Let's record new stuff");
+
+        long timestamp = System.currentTimeMillis();
+        long lastBootTimestamp = timestamp - SystemClock.elapsedRealtime();
+
+        DateTime dt = new DateTime(timestamp, Bridge.TIMEZONE);
+        DateTime midnight = dt.withTimeAtStartOfDay();
+        long midnightTimestamp = midnight.getMillis();
+
+        int stepNumberSinceMidnight = 0; // Default if no recording, or no recording that day
+
+        List<StepRecord> records = stepDao.getLastRecord();
+        // If there is some record
+        if (records.size() > 0)
+        {
+            StepRecord ref = records.get(0);
+            // If there is some record /for today/
+            if (ref.ts > midnightTimestamp)
+            {
+                // If phone has been reboot in the between (leave some error margin),
+                // Then take the meter reading as the number of steps done since the last log
+                // So, steps since midnight is step since midnight from last log plus the meter reading
+                if (lastBootTimestamp > ref.tsLastBoot + 500) { // 500: error margin
+                    stepNumberSinceMidnight = ref.stepMidnight + sensorValue;
+                }
+                // If they were no boot, just consider the progression,
+                // and add it to the previous log
+                else
+                {
+                    stepNumberSinceMidnight = ref.stepMidnight
+                            + (sensorValue - ref.stepLastBoot);
+                }
+            }
+        }
+
+        // Record new entry
+        stepDao.insertStepRecord(new StepRecord(
+                timestamp,
+                lastBootTimestamp,
+                sensorValue,
+                stepNumberSinceMidnight
+        ));
+
+        // Delete older ones within a 6 min range
+        long lowerBound = Math.max(midnightTimestamp, timestamp - Bridge.MIN_DELAY_BETWEEN_TWO_RECORDS);
+        stepDao.deleteRecordsOnInterval(lowerBound, timestamp); // Upper bound is the timestamp of that recording
+    }
 }

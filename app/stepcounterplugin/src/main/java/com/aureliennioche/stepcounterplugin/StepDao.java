@@ -10,20 +10,23 @@ import java.util.List;
 
 @Dao
 public interface StepDao {
-    @Query("SELECT * FROM steprecord ORDER BY timestamp ASC")
+    @Query("SELECT * FROM steprecord ORDER BY ts ASC")
     List<StepRecord> getAll();
 
-    @Query("SELECT * FROM steprecord WHERE timestamp > :ref ORDER BY timestamp ASC")
+    @Query("SELECT * FROM steprecord WHERE ts > :ref ORDER BY ts ASC")
     List<StepRecord> getRecordsNewerThan(long ref);
 
-    @Query("SELECT * FROM steprecord WHERE timestamp = (SELECT MAX(timestamp) FROM steprecord)")
+    @Query("SELECT * FROM steprecord WHERE ts = (SELECT MAX(ts) FROM steprecord)")
     List<StepRecord> getLastRecord();
 
-    @Query("SELECT * FROM steprecord WHERE timestamp = (SELECT MAX(timestamp) FROM steprecord WHERE :lowerBound <= timestamp < :upperBound )")
+    @Query("SELECT * FROM steprecord WHERE ts = (SELECT MAX(ts) FROM steprecord WHERE ts >= :lowerBound AND ts < :upperBound)")
     List<StepRecord> getLastRecordOnInterval(long lowerBound, long upperBound);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertStepRecord(StepRecord stepRecord);
+
+    @Query("DELETE FROM steprecord WHERE ts >= :lowerBound AND ts < :upperBound")
+    void deleteRecordsOnInterval(long lowerBound, long upperBound);
 
     @Query("DELETE FROM steprecord")
     void nukeTable();

@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "cac634f5a95fa69b8dfdac8d4a7a8085",
+    "identityHash": "b7b65a599006863b596dc62b1e09f3e0",
     "entities": [
       {
         "tableName": "StepRecord",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `lastBootTimestamp` INTEGER NOT NULL, `stepNumberSinceLastBoot` INTEGER NOT NULL, `stepNumberSinceMidnight` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ts` INTEGER NOT NULL, `tsLastBoot` INTEGER NOT NULL, `stepLastBoot` INTEGER NOT NULL, `stepMidnight` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -15,26 +15,26 @@
             "notNull": true
           },
           {
-            "fieldPath": "timestamp",
-            "columnName": "timestamp",
+            "fieldPath": "ts",
+            "columnName": "ts",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "lastBootTimestamp",
-            "columnName": "lastBootTimestamp",
+            "fieldPath": "tsLastBoot",
+            "columnName": "tsLastBoot",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "stepNumberSinceLastBoot",
-            "columnName": "stepNumberSinceLastBoot",
+            "fieldPath": "stepLastBoot",
+            "columnName": "stepLastBoot",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "stepNumberSinceMidnight",
-            "columnName": "stepNumberSinceMidnight",
+            "fieldPath": "stepMidnight",
+            "columnName": "stepMidnight",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -52,7 +52,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cac634f5a95fa69b8dfdac8d4a7a8085')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b7b65a599006863b596dc62b1e09f3e0')"
     ]
   }
 }

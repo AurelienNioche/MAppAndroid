@@ -44,11 +44,20 @@ public class MainActivity extends AppCompatActivity {
 
         DateTime dt =DateTime.now(Bridge.TIMEZONE);
         int nStep = bridge.getStepNumberSinceMidnightThatDay(dt);
-        Log.d(tag, "Number of steps since midnight" + nStep);
+        Log.d(tag, "Number of steps since midnight = " + nStep);
 
-        Log.d(tag, "Testing recovering records" + nStep);
+        Log.d(tag, "Testing recovering records");
         List<StepRecord> records = bridge.getRecordsNewerThan(DateTime.now(Bridge.TIMEZONE).minusMinutes(5));
         bridge.logRecords(records);
+
+        try {
+            Log.d(tag, "testing jsonify");
+            String out = bridge.getRecordNewerThanJsonFormat(DateTime.now(Bridge.TIMEZONE).minusMinutes(5));
+            Log.d(tag, out);
+            Log.d(tag, "done with json");
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void launchUnity() {

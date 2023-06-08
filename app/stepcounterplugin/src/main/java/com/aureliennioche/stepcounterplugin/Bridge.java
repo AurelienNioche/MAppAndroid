@@ -54,29 +54,29 @@ public class Bridge {
         return false;
     }
 
-    public List<StepRecord> getRecordsNewerThan(DateTime dateTime) {
-
-        long ref = dateTime.getMillis();
-        return stepDao.getRecordsNewerThan(ref);
+    public List<StepRecord> getRecordsNewerThan(long timestamp) {
+        return stepDao.getRecordsNewerThan(timestamp);
     }
 
-    public String getRecordNewerThanJsonFormat(DateTime dateTime) throws JsonProcessingException {
+    public String getRecordNewerThanJsonFormat(long timestamp) throws JsonProcessingException {
 
         // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
 
-        List<StepRecord> list = getRecordsNewerThan(dateTime);
+        List<StepRecord> list = getRecordsNewerThan(timestamp);
         final ObjectMapper mapper = new ObjectMapper();
         return mapper.writeValueAsString(list);
     }
 
-    public int getStepNumberSinceMidnightThatDay(DateTime dateTime) {
-        DateTime midnight = dateTime.withTimeAtStartOfDay();
+    public int getStepNumberSinceMidnightThatDay(long timestamp) {
+
+        DateTime dt = new DateTime(timestamp, Bridge.TIMEZONE);
+        DateTime midnight = dt.withTimeAtStartOfDay();
         DateTime nextMidnight = midnight.plusDays(1);
 
         long midnightTimestamp = midnight.getMillis();
         long nextMidnightTimestamp = nextMidnight.getMillis();
 
-        Log.d(tag, "timezone ID:" + dateTime.getZone().getID());
+        Log.d(tag, "timezone ID:" + dt.getZone().getID());
         List<StepRecord> records = stepDao.getLastRecordOnInterval(
                 midnightTimestamp,
                 nextMidnightTimestamp);

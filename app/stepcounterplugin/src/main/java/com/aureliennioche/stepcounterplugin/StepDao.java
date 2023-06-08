@@ -10,8 +10,6 @@ import java.util.List;
 
 @Dao
 public interface StepDao {
-    @Query("SELECT * FROM steprecord ORDER BY ts ASC")
-    List<StepRecord> getAll();
 
     @Query("SELECT * FROM steprecord WHERE ts > :ref ORDER BY ts ASC")
     List<StepRecord> getRecordsNewerThan(long ref);
@@ -29,6 +27,9 @@ public interface StepDao {
             "AND stepMidnight % 100 != 0")  // We don't want to erase when 100's are reached so, we know when the goal was reached
     void deleteRecordsOnInterval(long lowerBound, long upperBound);
 
-    @Query("DELETE FROM steprecord")
-    void nukeTable();
+//    @Query("SELECT * FROM steprecord ORDER BY ts ASC")
+//    List<StepRecord> getAll();
+//
+//    @Query("DELETE FROM steprecord")
+//    void nukeTable();
 }

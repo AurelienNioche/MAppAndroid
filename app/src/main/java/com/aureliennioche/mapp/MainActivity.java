@@ -8,13 +8,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.aureliennioche.stepcounterplugin.Bridge;
-import com.aureliennioche.stepcounterplugin.StepRecord;
-
- import org.joda.time.DateTime;
-
-import java.util.List;
-
 public class MainActivity extends AppCompatActivity {
 
     String tag = "testing";  // this.getClass().getSimpleName();

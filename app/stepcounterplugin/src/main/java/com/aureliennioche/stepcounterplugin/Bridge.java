@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class Bridge {
-    public static DateTimeZone TIMEZONE = DateTimeZone.forID("Europe/London");
+    public static DateTimeZone TIMEZONE = DateTimeZone.getDefault();//forID("Europe/London");
     public static int MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES = 6;
 
     public static int KEEP_DATA_NO_LONGER_THAN_X_MONTH = 3;

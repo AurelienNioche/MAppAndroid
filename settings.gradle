@@ -15,8 +15,8 @@ dependencyResolutionManagement {
 rootProject.name = "MApp"
 include ':app'
 include ':app:stepcounterplugin'
-
 include ':unityLibrary'
+
 project(':unityLibrary').projectDir=new File('/Users/aureliennioche/Documents/UnityProjects/MApp/Builds/unityLibrary')
 
 dependencyResolutionManagement {

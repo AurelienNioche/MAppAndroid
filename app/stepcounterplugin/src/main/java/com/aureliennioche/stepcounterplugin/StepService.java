@@ -161,8 +161,13 @@ public class StepService extends Service implements SensorEventListener {
                 stepNumberSinceMidnight
         ));
 
-        // Delete older ones within a 6 min range
-        long lowerBound = Math.max(midnightTimestamp, timestamp - Bridge.MIN_DELAY_BETWEEN_TWO_RECORDS);
+        // Delete
+        long bound = midnight.minusMonths(Bridge.KEEP_DATA_NO_LONGER_THAN_X_MONTH).getMillis();
+        stepDao.deleteRecordsOlderThan(bound);
+
+        // Delete older ones within a 6 min range (we assume we don't need data more than every 6 minutes)
+        long lowerBound = midnight.minusMinutes(Bridge.MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES).getMillis();
+        lowerBound = Math.max(midnightTimestamp, lowerBound); // Bound the bound to midnight that dat
         stepDao.deleteRecordsOnInterval(lowerBound, timestamp); // Upper bound is the timestamp of that recording
     }
 }

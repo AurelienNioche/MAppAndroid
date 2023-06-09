@@ -27,6 +27,9 @@ public interface StepDao {
             "AND stepMidnight % 100 != 0")  // We don't want to erase when 100's are reached so, we know when the goal was reached
     void deleteRecordsOnInterval(long lowerBound, long upperBound);
 
+    @Query("DELETE FROM steprecord WHERE ts < :bound")  // We don't want to erase when 100's are reached so, we know when the goal was reached
+    void deleteRecordsOlderThan(long bound);
+
 //    @Query("SELECT * FROM steprecord ORDER BY ts ASC")
 //    List<StepRecord> getAll();
 //

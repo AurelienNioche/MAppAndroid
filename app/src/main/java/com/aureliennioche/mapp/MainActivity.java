@@ -1,5 +1,6 @@
 package com.aureliennioche.mapp;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -10,12 +11,19 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
-    String tag = "testing";  // this.getClass().getSimpleName();
+    static final String tag = "testing";  // this.getClass().getSimpleName();
+
+//    public static void sayHello() {
+//        Log.d(tag, "hello");
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(tag, "Start the MainActivity");
+//        long timestamp = System.currentTimeMillis();
+//        int stepNumber = Bridge.getStepNumberSinceMidnightThatDay(this, timestamp);
+//        Log.d(tag, "step number: " + stepNumber);
         launchUnity();
 
         // Erase everything first (we might want to do something else later on)
@@ -49,6 +57,16 @@ public class MainActivity extends AppCompatActivity {
 //        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
 //            throw new RuntimeException(e);
 //        }
+    }
+
+    public void launchService() {
+        Context context = this.getApplicationContext();
+//        if (isServiceAlive(context, StepService.class)) {
+//            Log.d(tag, "Service is already running");
+//        } else {
+        Log.d(tag, "Creating the service");
+        Intent intent = new Intent(context, StepService.class);
+        context.startForegroundService(intent);
     }
 
     public void launchUnity() {

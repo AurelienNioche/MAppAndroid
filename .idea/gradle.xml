@@ -12,7 +12,6 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/app/stepcounterplugin" />
             <option value="$PROJECT_DIR$/../../UnityProjects/MApp/Builds/unityLibrary" />
           </set>
         </option>

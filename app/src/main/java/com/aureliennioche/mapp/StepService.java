@@ -5,16 +5,21 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
+
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -25,15 +30,46 @@ public class StepService extends Service implements SensorEventListener {
     private static final int ONGOING_NOTIFICATION_ID = 1234;
     private static final String CHANNEL_ID = "channel_id";
 
+    public static final int MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES = 6;
+
+    public static final int KEEP_DATA_NO_LONGER_THAN_X_MONTH = 3;
+    public static final String tag = "testing";
+
     SensorManager sensorManager;
-    String tag = "testing"; // this.getClass().getSimpleName();
 
     StepDao stepDao;
 
+    // Binder given to clients.
+    private final IBinder binder = new LocalBinder();
+
+    public class LocalBinder extends Binder {
+        StepService getService() {
+            // Return this instance of LocalService so clients can call public methods.
+            return StepService.this;
+        }
+    }
+
     @Override
     public void onCreate() {
+        Log.d(tag, "onStartCommand => Creating the service");
         stepDao = StepDatabase.getInstance(this.getApplicationContext()).stepDao();
+//        baf = new BroadcastAppForeground(this);
+
+//        IntentFilter filter = new IntentFilter();
+//        filter.addAction("tamere");
+//        registerReceiver(receiver, filter);
     }
+
+//    final BroadcastAppForeground mMessageReceiver = new BroadcastAppForeground() {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            // Get extra data included in the Intent
+////            String message = intent.getStringExtra("key");
+//            Log.d(tag, "yoijdijridjijeid");
+//            // tvStatus.setText(message);
+//            // Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+//        }
+//    };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -45,7 +81,7 @@ public class StepService extends Service implements SensorEventListener {
         // PendingIntent.FLAG_MUTABLE instead.
         Intent notificationIntent = null;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            notificationIntent = new Intent(this, Bridge.class);
+            notificationIntent = new Intent(this, Service.class);
         }
         PendingIntent pendingIntent =
                 PendingIntent.getActivity(this, 0, notificationIntent,
@@ -53,8 +89,8 @@ public class StepService extends Service implements SensorEventListener {
 
         Notification notification =
                 new Notification.Builder(this, CHANNEL_ID)
-                        .setContentTitle(getText(R.string.notification_title))
-                        .setContentText(getText(R.string.notification_message))
+                        .setContentTitle(getText(R.string.notification_foreground_title))
+                        .setContentText(getText(R.string.notification_foreground_message))
                         .setSmallIcon(R.drawable.ic_foot)
                         .setContentIntent(pendingIntent)
                          // .setTicker(getText(R.string.ticker_text))
@@ -65,31 +101,40 @@ public class StepService extends Service implements SensorEventListener {
         // Notification ID cannot be 0.
         startForeground(ONGOING_NOTIFICATION_ID, notification);
 
+        // registerReceiver(mysms, new IntentFilter("your_action_name"));
+
         // If we get killed, after returning from here, restart
         return START_STICKY;
     }
-
     @Override
     public IBinder onBind(Intent intent) {
-        // We don't provide binding, so return null
-        return null;
+        Log.d(tag, "StepService => onBind");
+        return binder;
+    }
+
+    public void setText(String message) {
+        Log.d(tag, message);
     }
 
     @Override
     public void onDestroy() {
-        Log.d(tag, "onDestroy => Service destroyed");
+        Log.d(tag, "StepService => onDestroy => Service destroyed");
         Toast.makeText(this, "MApp step counter service has been killed!", Toast.LENGTH_SHORT).show();
-        sensorManager.unregisterListener(this);
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(this);
+        }
+
         super.onDestroy();
     }
 
     private void createNotificationChannel() {
 
-        CharSequence name = getString(R.string.channel_name);
-        String description = getString(R.string.channel_description);
-        int importance = NotificationManager.IMPORTANCE_DEFAULT;
+        CharSequence name = getString(R.string.notification_foreground_channel_name);
+        String description = getString(R.string.notification_foreground_channel_description);
+        int importance = NotificationManager.IMPORTANCE_LOW;
         NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
         channel.setDescription(description);
+        channel.setShowBadge(false);
         // Register the channel with the system. You can't change the importance
         // or other notification behaviors after this.
         NotificationManager notificationManager = getSystemService(NotificationManager.class);
@@ -163,12 +208,16 @@ public class StepService extends Service implements SensorEventListener {
         ));
 
         // Delete
-        long bound = midnight.minusMonths(Bridge.KEEP_DATA_NO_LONGER_THAN_X_MONTH).getMillis();
+        long bound = midnight.minusMonths(KEEP_DATA_NO_LONGER_THAN_X_MONTH).getMillis();
         stepDao.deleteRecordsOlderThan(bound);
 
         // Delete older ones within a 6 min range (we assume we don't need data more than every 6 minutes)
-        long lowerBound = midnight.minusMinutes(Bridge.MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES).getMillis();
+        long lowerBound = midnight.minusMinutes(MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES).getMillis();
         lowerBound = Math.max(midnightTimestamp, lowerBound); // Bound the bound to midnight that dat
         stepDao.deleteRecordsOnInterval(lowerBound, timestamp); // Upper bound is the timestamp of that recording
+    }
+
+    public void Tamere() {
+        Log.d(tag, "ta mere du service");
     }
 }

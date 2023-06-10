@@ -6,11 +6,11 @@ import android.content.Intent;
 import android.util.Log;
 
 public class AutoStart extends BroadcastReceiver {
-    String tag = this.getClass().getSimpleName();
+    String tag = "testing";  // this.getClass().getSimpleName();
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        Log.w(tag, "Detected re-boot, yeah!!");
+        Log.w(tag, "Detected re-boot");
         if (intent != null) {
             String action = intent.getAction();
             {

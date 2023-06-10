@@ -30,7 +30,8 @@
             android:hardwareAccelerated="false"
             android:process=":Unity">
         </activity>
-        <service android:name="com.aureliennioche.mapp.StepService"> </service>
+        <service android:name="com.aureliennioche.mapp.StepService">
+        </service>
         <receiver
             android:name="com.aureliennioche.mapp.AutoStart"
             android:enabled="true"

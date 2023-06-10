@@ -1,72 +1,80 @@
 package com.aureliennioche.mapp;
 
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.Debug;
+import android.os.IBinder;
 import android.util.Log;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
     static final String tag = "testing";  // this.getClass().getSimpleName();
 
+    static StepService stepService;
+
 //    public static void sayHello() {
 //        Log.d(tag, "hello");
 //    }
+
+    private final ServiceConnection connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance.
+            StepService.LocalBinder binder = (StepService.LocalBinder) service;
+            stepService = binder.getService();
+            Log.d(tag, "service bounded");
+            // now you have the instance of service.
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            stepService = null;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(tag, "Start the MainActivity");
-//        long timestamp = System.currentTimeMillis();
-//        int stepNumber = Bridge.getStepNumberSinceMidnightThatDay(this, timestamp);
-//        Log.d(tag, "step number: " + stepNumber);
+        // Context context = this.getApplicationContext();
+        Log.d(tag, "Starting the service if not already started");
+        startForegroundService(new Intent(this.getApplication(), StepService.class));
+
+        Intent intent = new Intent(this, StepService.class);
+        bindService(intent, connection, Context.BIND_AUTO_CREATE);
+
+//        Intent intent = new Intent("your_action_name");
+//        sendBroadcast(intent);
+
         launchUnity();
 
-        // Erase everything first (we might want to do something else later on)
-        // Log.d(tag, "Du passé faisons table rase");
-        // stepDao.nukeTable();
-//
-//        Bridge bridge = new Bridge(this);
-//
-//        bridge.addFakeRecord(34);
-//
-//        bridge.addFakeRecord(38);
-//
-//        bridge.logRecords(bridge.getAllRecords());
-//
-//        // StepRecord record = bridge.GetLastRecordOnDay(DateTime.now());
-//        // Long value = System.currentTimeMillis();
-//
-//        DateTime dt =DateTime.now(Bridge.TIMEZONE);
-//        int nStep = bridge.getStepNumberSinceMidnightThatDay(dt);
-//        Log.d(tag, "Number of steps since midnight = " + nStep);
-//
-//        Log.d(tag, "Testing recovering records");
-//        List<StepRecord> records = bridge.getRecordsNewerThan(DateTime.now(Bridge.TIMEZONE).minusMinutes(5));
-//        bridge.logRecords(records);
-//
-//        try {
-//            Log.d(tag, "testing jsonify");
-//            String out = bridge.getRecordNewerThanJsonFormat(DateTime.now(Bridge.TIMEZONE).minusMinutes(5));
-//            Log.d(tag, out);
-//            Log.d(tag, "done with json");
-//        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-//            throw new RuntimeException(e);
-//        }
-    }
+        IntentFilter filter = new IntentFilter("MAIN_UNITY_ACTIVITY_CALLBACK");
 
-    public void launchService() {
-        Context context = this.getApplicationContext();
-//        if (isServiceAlive(context, StepService.class)) {
-//            Log.d(tag, "Service is already running");
-//        } else {
-        Log.d(tag, "Creating the service");
-        Intent intent = new Intent(context, StepService.class);
-        context.startForegroundService(intent);
+        BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                //do something based on the intent's action
+                Log.d(tag,  "Received broadcast");
+                String callback = intent.getStringExtra("CALLBACK");
+                Log.d(tag, "Broadcast is " + callback);
+                if (Objects.equals(callback, "onResume")) {
+                    stepService.Tamere();
+                }
+            }
+        };
+        registerReceiver(receiver, filter);
     }
 
     public void launchUnity() {
@@ -81,4 +89,19 @@ public class MainActivity extends AppCompatActivity {
     ActivityResultLauncher<Intent> startActivityIntent = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {});
+
+    public void onPause() {
+        Log.d(tag, "onPause");
+        super.onPause();
+    }
+
+    public void onDestroy() {
+        Log.d(tag, "onDestroy");
+        if (stepService != null) {
+            // Detach the service connection.
+            unbindService(connection);
+        }
+
+        super.onDestroy();
+    }
 }

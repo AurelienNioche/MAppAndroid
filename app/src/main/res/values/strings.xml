@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">MApp</string>
     <string name="game_view_content_description">Game view</string>
-    <string name="notification_message">Your number of step are collected in the background.</string>
-    <string name="notification_title">Counting the steps…</string>
-    <string name="channel_name">Information</string>
-    <string name="channel_description">Provide potentially useful information.</string>
+    <string name="notification_foreground_message">Your number of steps are collected in the background.</string>
+    <string name="notification_foreground_title">Counting the steps…</string>
+    <string name="notification_foreground_channel_name">Background recording</string>
+    <string name="notification_foreground_channel_description">Inform you that your number of steps are recorded.</string>
 </resources>

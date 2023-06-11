@@ -47,9 +47,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(tag, "Start the MainActivity");
+        Log.d(tag, "MainActivity => Start the MainActivity");
         // Context context = this.getApplicationContext();
-        Log.d(tag, "Starting the service if not already started");
+        Log.d(tag, "MainActivity => Starting the service if not already started");
         startForegroundService(new Intent(this.getApplication(), StepService.class));
 
         Intent intent = new Intent(this, StepService.class);
@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onReceive(Context context, Intent intent) {
                 //do something based on the intent's action
-                Log.d(tag,  "Received broadcast");
+                Log.d(tag,  "MainActivity => Received broadcast");
                 String callback = intent.getStringExtra("CALLBACK");
                 Log.d(tag, "Broadcast is " + callback);
                 if (Objects.equals(callback, "onResume")) {
@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void launchUnity() {
 
-        Log.d(tag, "Launching the Unity activity");
+        Log.d(tag, "MainActivity => Launching the Unity activity");
         Intent intent = new Intent(MainActivity.this, MainUnityActivity.class);
         MainActivity.this.startActivity(intent);
         intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
@@ -91,17 +91,23 @@ public class MainActivity extends AppCompatActivity {
             result -> {});
 
     public void onPause() {
-        Log.d(tag, "onPause");
+        Log.d(tag, "MainActivity => onPause");
         super.onPause();
     }
 
     public void onDestroy() {
-        Log.d(tag, "onDestroy");
+        Log.d(tag, "MainActivity => onDestroy");
         if (stepService != null) {
             // Detach the service connection.
             unbindService(connection);
         }
 
         super.onDestroy();
+    }
+
+    public void onResume() {
+        super.onResume();
+        Log.d(tag, "MainActivity => onResume");
+        // launchUnity();
     }
 }

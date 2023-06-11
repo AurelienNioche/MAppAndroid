@@ -9,22 +9,98 @@ import android.os.IBinder;
 import android.util.Log;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unity3d.player.UnityPlayerActivity;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Random;
 
 public class MainUnityActivity extends UnityPlayerActivity {
-    public static MainUnityActivity instance = null;
-
-    public static String tag = "testing";
-
+    public static final String tag = "testing";
+    private static final ObjectMapper mapper = new ObjectMapper();
+    public static MainUnityActivity instance = null;  // From "Unity As A Library" demo
     StepDao stepDao;
-//
-//    StepService stepService;
+    RewardDao rewardDao;
+    ProfileDao profileDao;
+
+    // UTILS ---------------------------------------------------------------------------------
+
+    // --------------------------------------------------------------------------------------------
+    // INTERFACE WITH UNITY
+    // --------------------------------------------------------------------------------------------
+    public void setRewards(String jsonData) throws JsonProcessingException {
+        List<Reward> rewards = mapper.readValue(jsonData, new TypeReference<List<Reward>>(){});
+        rewardDao.insertRewardsIfNotExisting(rewards);
+
+        List<Reward> rewardsInTable = rewardDao.getAll();
+        rewardsInTable.forEach(reward -> {
+            Log.d(tag, "In table: reward id " + String.valueOf(reward.id));
+        });
+    }
+
+    public int rewardCount() {
+        return rewardDao.getRowCount();
+    }
+
+    public String getUnSyncRewards() throws JsonProcessingException {
+        List<Reward>  rewards = rewardDao.getUnSyncRewards();
+        return mapper.writeValueAsString(rewards);
+    }
+
+    public void updateRewardFromJson(String jsonData) throws JsonProcessingException {
+        Reward reward = mapper.readValue(jsonData, Reward.class);
+        rewardDao.updateReward(reward);
+    }
+
+    // ----------------------------
+
+    public boolean isUsernameSet() {
+        return profileDao.getRowCount() > 0;
+    }
+
+    public String getUsername() {
+        return profileDao.getUsername();
+    }
+
+    public void setUsername(String username) {
+        if (profileDao.getRowCount() > 0) {
+            Profile profile = profileDao.getProfile();
+            profile.username = username;
+            profileDao.update(profile);
+        } else {
+            Profile profile = new Profile();
+            profileDao.insert(profile);
+        }
+    }
+
+    public boolean isDailyObjectiveSet() {
+        return profileDao.getDailyObjective() >= 0;
+    }
+
+    public void setDailyObjective(int dailyObjective) {
+        if (profileDao.getRowCount() > 0) {
+            Profile profile = profileDao.getProfile();
+            profile.dailyObjective = dailyObjective;
+            profileDao.update(profile);
+        } else {
+            Log.e(tag, "want to set daily objective but there isn't");
+        }
+    }
+
+    public int getDailyObjective() {
+        if (profileDao.getRowCount() > 0) {
+            return profileDao.getDailyObjective();
+        } else {
+            return -1;
+        }
+    }
+
+    // --------------------------------
 
     public int getStepNumberSinceMidnightThatDay(long timestamp) {
         // Log.d(tag, "hello");
@@ -53,16 +129,27 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
         List<StepRecord> list = stepDao.getRecordsNewerThan(timestamp);
-        final ObjectMapper mapper = new ObjectMapper();
         return mapper.writeValueAsString(list);
     }
+
+    // ------------------------------------------------------------------------------------
+    // Interface with service
+
+//    public void updateReward(Reward reward) throws JsonProcessingException {
+//        reward.localTag = generateStringTag();
+//        rewardDao.updateReward(reward);
+//    }
+
+    // -------------------------------------------------------------------------------------
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Interface to the database
+        // Interface to the databases
         stepDao = StepDatabase.getInstance(this.getApplicationContext()).stepDao();
+        rewardDao = RewardDatabase.getInstance(this.getApplicationContext()).rewardDao();
+        profileDao = ProfileDatabase.getInstance(this.getApplicationContext()).profileDao();
 
         // For starting Unity
         Intent intentUnityPlayer = getIntent();

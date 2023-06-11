@@ -28,7 +28,8 @@
             android:screenOrientation="fullSensor"
             android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density"
             android:hardwareAccelerated="false"
-            android:process=":Unity">
+            android:process=":Unity"
+            android:launchMode="singleTask">
         </activity>
         <service android:name="com.aureliennioche.mapp.StepService">
         </service>

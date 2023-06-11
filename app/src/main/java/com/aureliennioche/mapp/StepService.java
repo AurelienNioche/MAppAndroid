@@ -5,10 +5,9 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -19,25 +18,28 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class StepService extends Service implements SensorEventListener {
-    private static final int ONGOING_NOTIFICATION_ID = 1234;
-    private static final String CHANNEL_ID = "channel_id";
-
+    private static final int ONGOING_NOTIFICATION_ID = 999999;
+    private static final String NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID = "NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID";
+    private static final String NOTIFICATION_CHANNEL_OBJ_REACHED_ID = "NOTIFICATION_CHANNEL_OBJ_REACHED_ID";
     public static final int MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES = 6;
-
     public static final int KEEP_DATA_NO_LONGER_THAN_X_MONTH = 3;
     public static final String tag = "testing";
-
+    public boolean appVisibleOnScreen;
     SensorManager sensorManager;
-
     StepDao stepDao;
+    RewardDao rewardDao;
+    int notificationId = 1;
 
     // Binder given to clients.
     private final IBinder binder = new LocalBinder();
@@ -53,67 +55,34 @@ public class StepService extends Service implements SensorEventListener {
     public void onCreate() {
         Log.d(tag, "onStartCommand => Creating the service");
         stepDao = StepDatabase.getInstance(this.getApplicationContext()).stepDao();
-//        baf = new BroadcastAppForeground(this);
-
-//        IntentFilter filter = new IntentFilter();
-//        filter.addAction("tamere");
-//        registerReceiver(receiver, filter);
+        rewardDao = RewardDatabase.getInstance(this.getApplicationContext()).rewardDao();
     }
 
-//    final BroadcastAppForeground mMessageReceiver = new BroadcastAppForeground() {
-//        @Override
-//        public void onReceive(Context context, Intent intent) {
-//            // Get extra data included in the Intent
-////            String message = intent.getStringExtra("key");
-//            Log.d(tag, "yoijdijridjijeid");
-//            // tvStatus.setText(message);
-//            // Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
-//        }
-//    };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(tag, "onStartCommand => Service starting");
 
-        createNotificationChannel();
+        // Create notification channels
+        createNotificationChannelBackgroundTask();
+        createNotificationChannelObjReached();
 
-        // If the notification supports a direct reply action, use
-        // PendingIntent.FLAG_MUTABLE instead.
-        Intent notificationIntent = null;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            notificationIntent = new Intent(this, Service.class);
-        }
-        PendingIntent pendingIntent =
-                PendingIntent.getActivity(this, 0, notificationIntent,
-                        PendingIntent.FLAG_IMMUTABLE);
-
-        Notification notification =
-                new Notification.Builder(this, CHANNEL_ID)
-                        .setContentTitle(getText(R.string.notification_foreground_title))
-                        .setContentText(getText(R.string.notification_foreground_message))
-                        .setSmallIcon(R.drawable.ic_foot)
-                        .setContentIntent(pendingIntent)
-                         // .setTicker(getText(R.string.ticker_text))
-                        .build();
-
+        // Send notification to warn user about the background activity
+        Notification notification = createNotificationBackgroundTask();
         initSensorManager();
-
         // Notification ID cannot be 0.
         startForeground(ONGOING_NOTIFICATION_ID, notification);
 
-        // registerReceiver(mysms, new IntentFilter("your_action_name"));
+        // sendNotificationObjectiveReached(2.00, 1300);
 
         // If we get killed, after returning from here, restart
         return START_STICKY;
     }
+
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(tag, "StepService => onBind");
         return binder;
-    }
-
-    public void setText(String message) {
-        Log.d(tag, message);
     }
 
     @Override
@@ -127,12 +96,12 @@ public class StepService extends Service implements SensorEventListener {
         super.onDestroy();
     }
 
-    private void createNotificationChannel() {
+    private void createNotificationChannelBackgroundTask() {
 
         CharSequence name = getString(R.string.notification_foreground_channel_name);
         String description = getString(R.string.notification_foreground_channel_description);
         int importance = NotificationManager.IMPORTANCE_LOW;
-        NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+        NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID, name, importance);
         channel.setDescription(description);
         channel.setShowBadge(false);
         // Register the channel with the system. You can't change the importance
@@ -141,11 +110,82 @@ public class StepService extends Service implements SensorEventListener {
         notificationManager.createNotificationChannel(channel);
     }
 
+    private void createNotificationChannelObjReached() {
+
+        CharSequence name = getString(R.string.notification_channel_obj_reached_name);
+        String description = getString(R.string.notification_channel_obj_reached_description);
+        int importance = NotificationManager.IMPORTANCE_HIGH;
+        NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_OBJ_REACHED_ID, name, importance);
+        channel.setDescription(description);
+        channel.setShowBadge(false);
+        // Register the channel with the system. You can't change the importance
+        // or other notification behaviors after this.
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        notificationManager.createNotificationChannel(channel);
+    }
+
+    Notification createNotificationBackgroundTask() {
+        // If the notification supports a direct reply action, use
+        // PendingIntent.FLAG_MUTABLE instead.
+        Intent notificationIntent = new Intent(this, MainUnityActivity.class);
+
+        PendingIntent pendingIntent =
+                PendingIntent.getActivity(this, 0, notificationIntent,
+                        PendingIntent.FLAG_IMMUTABLE);
+
+        return new Notification.Builder(this, NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID)
+                .setContentTitle(getText(R.string.notification_foreground_title))
+                .setContentText(getText(R.string.notification_foreground_message))
+                .setSmallIcon(R.drawable.ic_foot)
+                .setContentIntent(pendingIntent)
+                // .setTicker(getText(R.string.ticker_text))
+                .build();
+    }
+
+    void sendNotificationObjectiveReached(double amount, int objective) {
+        // If the notification supports a direct reply action, use
+        // PendingIntent.FLAG_MUTABLE instead.
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+
+        PendingIntent pendingIntent =
+                PendingIntent.getActivity(this, 0, notificationIntent,
+                        PendingIntent.FLAG_IMMUTABLE);
+
+        String title = getString(R.string.notification_objective_reached_title, amount, objective);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_OBJ_REACHED_ID)
+                .setContentTitle(title)
+                .setContentText(getText(R.string.notification_objective_reached_message))
+                .setSmallIcon(R.drawable.ic_foot)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true); // Make this notification automatically dismissed when the user touches it.
+        // .setTicker(getText(R.string.ticker_text))
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+
+        // notificationId is a unique int for each notification that you must define
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        } else {
+            notificationManager.notify(notificationId, builder.build());
+        }
+    }
+
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         int sensorValue = (int) sensorEvent.values[0];
         Log.d(tag, "onSensorChanged: " + sensorValue);
-        recordNewSensorValue(sensorValue);
+        StepRecord rec = recordNewSensorValue(sensorValue);
+        boolean objectiveReached = checkIfObjectiveIsReached(rec);
+        if (objectiveReached) {
+            Reward rwd = rewardDao.currentReward();
+            sendNotificationObjectiveReached(rwd.amount, rwd.objective);
+        }
     }
 
     @Override
@@ -162,7 +202,7 @@ public class StepService extends Service implements SensorEventListener {
         Log.d(tag, "initSensorManager => Sensor manager initialized");
     }
 
-    void recordNewSensorValue(int sensorValue)
+    StepRecord recordNewSensorValue(int sensorValue)
     {
         Log.d(tag, "recordNewSensorValue => Let's record new stuff");
 
@@ -199,13 +239,16 @@ public class StepService extends Service implements SensorEventListener {
             }
         }
 
-        // Record new entry
-        stepDao.insertStepRecord(new StepRecord(
+        // Create new record
+        StepRecord rec = new StepRecord(
                 timestamp,
                 lastBootTimestamp,
                 sensorValue,
                 stepNumberSinceMidnight
-        ));
+        );
+
+        // Record new entry
+        stepDao.insertStepRecord(rec);
 
         // Delete
         long bound = midnight.minusMonths(KEEP_DATA_NO_LONGER_THAN_X_MONTH).getMillis();
@@ -215,6 +258,45 @@ public class StepService extends Service implements SensorEventListener {
         long lowerBound = midnight.minusMinutes(MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES).getMillis();
         lowerBound = Math.max(midnightTimestamp, lowerBound); // Bound the bound to midnight that dat
         stepDao.deleteRecordsOnInterval(lowerBound, timestamp); // Upper bound is the timestamp of that recording
+
+        return rec;
+    }
+
+    boolean checkIfObjectiveIsReached(StepRecord rec) {
+
+
+        boolean objReached = false;
+
+        // Check if we changed of day
+        DateTime recDt = new DateTime(rec.ts, DateTimeZone.getDefault());
+        DateTime midnightDt = recDt.withTimeAtStartOfDay();
+        long midnightTs = midnightDt.getMillis();
+
+        long midnightTomorrowTs =  midnightTs + TimeUnit.DAYS.toMillis(1);
+
+        List<Reward> rewards = rewardDao.accessibleRewards();
+
+        Reward currentReward = null;
+        // We will loop as we might have to
+        for (Reward reward: rewards){
+            if (reward.ts < midnightTs) {
+                reward.accessible = false;
+                rewardDao.updateReward(reward);
+            } else if (reward.ts < midnightTomorrowTs) {
+                currentReward = reward;
+            }
+        }
+        if (currentReward != null && ! currentReward.objective_reached) {
+
+            if (currentReward.objective <= rec.stepMidnight) {
+                Log.d(tag, "objective reached");
+                currentReward.objective_reached = true;
+                currentReward.objective_reached_ts = rec.ts;
+                rewardDao.updateReward(currentReward);
+                objReached = true;
+            }
+        }
+        return objReached;
     }
 
     public void Tamere() {

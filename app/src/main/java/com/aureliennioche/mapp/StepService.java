@@ -117,7 +117,7 @@ public class StepService extends Service implements SensorEventListener {
         int importance = NotificationManager.IMPORTANCE_HIGH;
         NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_OBJ_REACHED_ID, name, importance);
         channel.setDescription(description);
-        channel.setShowBadge(false);
+        channel.setShowBadge(true);
         // Register the channel with the system. You can't change the importance
         // or other notification behaviors after this.
         NotificationManager notificationManager = getSystemService(NotificationManager.class);
@@ -155,7 +155,7 @@ public class StepService extends Service implements SensorEventListener {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_OBJ_REACHED_ID)
                 .setContentTitle(title)
                 .setContentText(getText(R.string.notification_objective_reached_message))
-                .setSmallIcon(R.drawable.ic_foot)
+                .setSmallIcon(R.drawable.ic_cup)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true); // Make this notification automatically dismissed when the user touches it.
         // .setTicker(getText(R.string.ticker_text))
@@ -181,11 +181,7 @@ public class StepService extends Service implements SensorEventListener {
         int sensorValue = (int) sensorEvent.values[0];
         Log.d(tag, "onSensorChanged: " + sensorValue);
         StepRecord rec = recordNewSensorValue(sensorValue);
-        boolean objectiveReached = checkIfObjectiveIsReached(rec);
-        if (objectiveReached) {
-            Reward rwd = rewardDao.currentReward();
-            sendNotificationObjectiveReached(rwd.amount, rwd.objective);
-        }
+        checkIfObjectiveIsReached(rec);
     }
 
     @Override
@@ -262,41 +258,30 @@ public class StepService extends Service implements SensorEventListener {
         return rec;
     }
 
-    boolean checkIfObjectiveIsReached(StepRecord rec) {
+    void checkIfObjectiveIsReached(StepRecord rec) {
 
-
-        boolean objReached = false;
-
-        // Check if we changed of day
+        // Look at the time of the recording
         DateTime recDt = new DateTime(rec.ts, DateTimeZone.getDefault());
         DateTime midnightDt = recDt.withTimeAtStartOfDay();
         long midnightTs = midnightDt.getMillis();
+        long tsEndOfDay =  midnightTs + TimeUnit.DAYS.toMillis(1);
 
-        long midnightTomorrowTs =  midnightTs + TimeUnit.DAYS.toMillis(1);
+        // Make unaccessible the rewards older than that day
+        rewardDao.updateAccessibleAccordingToDay(midnightTs, tsEndOfDay);
 
-        List<Reward> rewards = rewardDao.accessibleRewards();
 
-        Reward currentReward = null;
-        // We will loop as we might have to
-        for (Reward reward: rewards){
-            if (reward.ts < midnightTs) {
-                reward.accessible = false;
-                rewardDao.updateReward(reward);
-            } else if (reward.ts < midnightTomorrowTs) {
-                currentReward = reward;
-            }
+        List<Reward> rewards = rewardDao.notFlaggedObjectiveReachedRewards(rec.stepMidnight);
+
+        for (Reward rwd: rewards){
+
+            Log.d(tag, "objective reached");
+
+            // Update record
+            rewardDao.rewardObjectiveHasBeenReached(rwd.id, rec.ts);
+
+            // Send notification
+            sendNotificationObjectiveReached(rwd.amount, rwd.objective);
         }
-        if (currentReward != null && ! currentReward.objective_reached) {
-
-            if (currentReward.objective <= rec.stepMidnight) {
-                Log.d(tag, "objective reached");
-                currentReward.objective_reached = true;
-                currentReward.objective_reached_ts = rec.ts;
-                rewardDao.updateReward(currentReward);
-                objReached = true;
-            }
-        }
-        return objReached;
     }
 
     public void Tamere() {

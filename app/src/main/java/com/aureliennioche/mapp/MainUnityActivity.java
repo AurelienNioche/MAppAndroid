@@ -1,11 +1,7 @@
 package com.aureliennioche.mapp;
 
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.util.Log;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -16,9 +12,7 @@ import com.unity3d.player.UnityPlayerActivity;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Random;
 
 public class MainUnityActivity extends UnityPlayerActivity {
     public static final String tag = "testing";
@@ -33,14 +27,37 @@ public class MainUnityActivity extends UnityPlayerActivity {
     // --------------------------------------------------------------------------------------------
     // INTERFACE WITH UNITY
     // --------------------------------------------------------------------------------------------
-    public void setRewards(String jsonData) throws JsonProcessingException {
+
+    public void initSet(
+            String rewardList,
+            int dailyObjective,
+            double chestAmount,
+            String username) throws JsonProcessingException {
+
+        // Set up profile
+        if (profileDao.getRowCount() > 0) {
+            Log.e(tag, "Profile was already existing");
+        }
+        Profile p = new Profile();
+        p.username = username;
+        p.dailyObjective = dailyObjective;
+        p.chestAmount = chestAmount;
+        profileDao.insert(p);
+
+        // Set up rewards
+        setRewards(rewardList);
+    }
+
+    void setRewards(String jsonData) throws JsonProcessingException {
         List<Reward> rewards = mapper.readValue(jsonData, new TypeReference<List<Reward>>(){});
         rewardDao.insertRewardsIfNotExisting(rewards);
 
+        // TODO: REMOVE AFTER DEBUG ------------------------
         List<Reward> rewardsInTable = rewardDao.getAll();
         rewardsInTable.forEach(reward -> {
             Log.d(tag, "In table: reward id " + String.valueOf(reward.id));
         });
+        // ------------------------------------------------
     }
 
     public int rewardCount() {
@@ -52,6 +69,10 @@ public class MainUnityActivity extends UnityPlayerActivity {
         return mapper.writeValueAsString(rewards);
     }
 
+    public void updateServerTags(List<Integer> idList, List<String> serverTagList) {
+        rewardDao.updateServerTags(idList, serverTagList);
+    }
+
     public void updateRewardFromJson(String jsonData) throws JsonProcessingException {
         Reward reward = mapper.readValue(jsonData, Reward.class);
         rewardDao.updateReward(reward);
@@ -59,7 +80,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
     // ----------------------------
 
-    public boolean isUsernameSet() {
+    public boolean isProfileSet() {
         return profileDao.getRowCount() > 0;
     }
 
@@ -67,38 +88,49 @@ public class MainUnityActivity extends UnityPlayerActivity {
         return profileDao.getUsername();
     }
 
-    public void setUsername(String username) {
-        if (profileDao.getRowCount() > 0) {
-            Profile profile = profileDao.getProfile();
-            profile.username = username;
-            profileDao.update(profile);
-        } else {
-            Profile profile = new Profile();
-            profileDao.insert(profile);
-        }
+    public double getChestAmount() {
+        return profileDao.getChestAmount();
     }
 
-    public boolean isDailyObjectiveSet() {
-        return profileDao.getDailyObjective() >= 0;
+    public int getDailyObjective() {return profileDao.getDailyObjective();}
+
+    public void setChestAmount(double chestAmount) {
+        if (profileDao.getRowCount() < 1) {
+            Log.e(tag, "Nothing to edit");
+        }
+        Profile p = profileDao.getProfile();
+        p.chestAmount = chestAmount;
+        profileDao.update(p);
     }
 
-    public void setDailyObjective(int dailyObjective) {
-        if (profileDao.getRowCount() > 0) {
-            Profile profile = profileDao.getProfile();
-            profile.dailyObjective = dailyObjective;
-            profileDao.update(profile);
-        } else {
-            Log.e(tag, "want to set daily objective but there isn't");
-        }
+    public void updateRewardCashedOut(int rewardId) {
+        rewardDao.rewardHasBeenCashedOut(rewardId);
     }
 
-    public int getDailyObjective() {
-        if (profileDao.getRowCount() > 0) {
-            return profileDao.getDailyObjective();
-        } else {
-            return -1;
-        }
-    }
+//    public void setUsername(String username) {
+//        if (profileDao.getRowCount() > 0) {
+//            Profile profile = profileDao.getProfile();
+//            profile.username = username;
+//            profileDao.update(profile);
+//        } else {
+//            Profile profile = new Profile();
+//            profileDao.insert(profile);
+//        }
+//    }
+//
+//    public boolean isDailyObjectiveSet() {
+//        return profileDao.getDailyObjective() >= 0;
+//    }
+//
+//    public void setDailyObjective(int dailyObjective) {
+//        if (profileDao.getRowCount() > 0) {
+//            Profile profile = profileDao.getProfile();
+//            profile.dailyObjective = dailyObjective;
+//            profileDao.update(profile);
+//        } else {
+//            Log.e(tag, "want to set daily objective but there isn't");
+//        }
+//    }
 
     // --------------------------------
 

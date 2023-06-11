@@ -21,17 +21,17 @@ public class Reward {
     @ColumnInfo() //  Number of step since midnight (not hyper duper precise)
     public boolean accessible;
 
-    @ColumnInfo() //  Number of step since midnight (not hyper duper precise)
-    public boolean objective_reached;
+    @ColumnInfo()
+    public boolean objectiveReached;
 
-    @ColumnInfo() //  Number of step since midnight (not hyper duper precise)
-    public long objective_reached_ts;
+    @ColumnInfo()
+    public long objectiveReachedTs;
 
-    @ColumnInfo() //  Number of step since midnight (not hyper duper precise)
-    public boolean cashed_out;
+    @ColumnInfo()
+    public boolean cashedOut;
 
-    @ColumnInfo() //  Number of step since midnight (not hyper duper precise)
-    public long cashed_out_ts;
+    @ColumnInfo()
+    public long cashedOutTs;
 
     @ColumnInfo()
     public String serverTag;

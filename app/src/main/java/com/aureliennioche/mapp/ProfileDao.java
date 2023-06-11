@@ -21,6 +21,9 @@ public interface ProfileDao {
     @Query("SELECT dailyObjective FROM  profile LIMIT 1")
     int getDailyObjective();
 
+    @Query("SELECT chestAmount FROM  profile LIMIT 1")
+    double getChestAmount();
+
     @Insert
     void insert(Profile profile);
 

@@ -17,6 +17,7 @@ public interface StepDao {
     @Query("SELECT * FROM steprecord WHERE ts = (SELECT MAX(ts) FROM steprecord)")
     List<StepRecord> getLastRecord();
 
+    // Return a list of zero or one element
     @Query("SELECT * FROM steprecord WHERE ts = (SELECT MAX(ts) FROM steprecord WHERE ts >= :lowerBound AND ts < :upperBound)")
     List<StepRecord> getLastRecordOnInterval(long lowerBound, long upperBound);
 

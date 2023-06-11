@@ -1,32 +1,46 @@
 package com.aureliennioche.mapp;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.IBinder;
 import android.util.Log;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.core.content.ContextCompat;
 
 import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
     static final String tag = "testing";  // this.getClass().getSimpleName();
-
     static StepService stepService;
 
-//    public static void sayHello() {
-//        Log.d(tag, "hello");
-//    }
+    ActivityResultLauncher<Intent> startActivityIntent = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {});
+
+
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    isGranted -> {
+                        if (isGranted) {
+                            checkPermissions();
+                        }
+                        else
+                        {
+                            finishAndRemoveTask();
+                        }});
 
     private final ServiceConnection connection = new ServiceConnection() {
         @Override
@@ -35,7 +49,6 @@ public class MainActivity extends AppCompatActivity {
             StepService.LocalBinder binder = (StepService.LocalBinder) service;
             stepService = binder.getService();
             Log.d(tag, "service bounded");
-            // now you have the instance of service.
         }
 
         @Override
@@ -49,16 +62,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Log.d(tag, "MainActivity => Start the MainActivity");
         // Context context = this.getApplicationContext();
+
+        checkPermissions();
+    }
+
+
+    public void allPermissionsHaveBeenGranted() {
+
         Log.d(tag, "MainActivity => Starting the service if not already started");
         startForegroundService(new Intent(this.getApplication(), StepService.class));
 
         Intent intent = new Intent(this, StepService.class);
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
-
-//        Intent intent = new Intent("your_action_name");
-//        sendBroadcast(intent);
-
-        launchUnity();
 
         IntentFilter filter = new IntentFilter("MAIN_UNITY_ACTIVITY_CALLBACK");
 
@@ -75,6 +90,8 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         registerReceiver(receiver, filter);
+
+        launchUnity();
     }
 
     public void launchUnity() {
@@ -85,10 +102,6 @@ public class MainActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         startActivityIntent.launch(intent);
     }
-
-    ActivityResultLauncher<Intent> startActivityIntent = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {});
 
     public void onPause() {
         Log.d(tag, "MainActivity => onPause");
@@ -101,13 +114,30 @@ public class MainActivity extends AppCompatActivity {
             // Detach the service connection.
             unbindService(connection);
         }
-
         super.onDestroy();
     }
 
     public void onResume() {
         super.onResume();
         Log.d(tag, "MainActivity => onResume");
-        // launchUnity();
+    }
+
+    // ----------------------------------------- //
+
+
+    public void checkPermissions() {
+        // Begin by requesting the notification permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED) {
+            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+        }
+        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && ContextCompat.checkSelfPermission(
+                this, Manifest.permission.ACTIVITY_RECOGNITION) !=
+                PackageManager.PERMISSION_GRANTED) {
+            requestPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION);
+        } else {
+            allPermissionsHaveBeenGranted();
+        }
     }
 }

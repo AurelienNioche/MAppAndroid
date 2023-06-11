@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "e6cfb63a2070d8b7e8fade56cfb8b81d",
+    "identityHash": "8f29aa7d41318fbe97a2d0eb2eb83f89",
     "entities": [
       {
         "tableName": "Reward",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ts` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `amount` REAL NOT NULL, `accessible` INTEGER NOT NULL, `objective_reached` INTEGER NOT NULL, `objective_reached_ts` INTEGER NOT NULL, `cashed_out` INTEGER NOT NULL, `cashed_out_ts` INTEGER NOT NULL, `serverTag` TEXT, `localTag` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ts` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `amount` REAL NOT NULL, `accessible` INTEGER NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `serverTag` TEXT, `localTag` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -39,26 +39,26 @@
             "notNull": true
           },
           {
-            "fieldPath": "objective_reached",
-            "columnName": "objective_reached",
+            "fieldPath": "objectiveReached",
+            "columnName": "objectiveReached",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "objective_reached_ts",
-            "columnName": "objective_reached_ts",
+            "fieldPath": "objectiveReachedTs",
+            "columnName": "objectiveReachedTs",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "cashed_out",
-            "columnName": "cashed_out",
+            "fieldPath": "cashedOut",
+            "columnName": "cashedOut",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "cashed_out_ts",
-            "columnName": "cashed_out_ts",
+            "fieldPath": "cashedOutTs",
+            "columnName": "cashedOutTs",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -88,7 +88,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e6cfb63a2070d8b7e8fade56cfb8b81d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8f29aa7d41318fbe97a2d0eb2eb83f89')"
     ]
   }
 }

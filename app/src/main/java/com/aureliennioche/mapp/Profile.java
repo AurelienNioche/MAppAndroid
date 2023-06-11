@@ -16,4 +16,7 @@ public class Profile {
 
     @ColumnInfo(defaultValue = "-1")
     public int dailyObjective;
+
+    @ColumnInfo
+    public double chestAmount;
 }

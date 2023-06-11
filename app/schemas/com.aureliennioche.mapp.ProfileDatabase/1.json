@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "d4d6f529f6275ce5fe6d6789eb250363",
+    "identityHash": "67ad6b5f8107e098904e9e5c357d1b33",
     "entities": [
       {
         "tableName": "Profile",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `username` TEXT, `dailyObjective` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `username` TEXT, `dailyObjective` INTEGER NOT NULL DEFAULT -1, `chestAmount` REAL NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -24,6 +24,13 @@
             "fieldPath": "dailyObjective",
             "columnName": "dailyObjective",
             "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "-1"
+          },
+          {
+            "fieldPath": "chestAmount",
+            "columnName": "chestAmount",
+            "affinity": "REAL",
             "notNull": true
           }
         ],
@@ -40,7 +47,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd4d6f529f6275ce5fe6d6789eb250363')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '67ad6b5f8107e098904e9e5c357d1b33')"
     ]
   }
 }

@@ -28,6 +28,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
     // INTERFACE WITH UNITY
     // --------------------------------------------------------------------------------------------
 
+    @SuppressWarnings("unused")
     public void initSet(
             String rewardList,
             int dailyObjective,
@@ -45,11 +46,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
         profileDao.insert(p);
 
         // Set up rewards
-        setRewards(rewardList);
-    }
-
-    void setRewards(String jsonData) throws JsonProcessingException {
-        List<Reward> rewards = mapper.readValue(jsonData, new TypeReference<List<Reward>>(){});
+        List<Reward> rewards = mapper.readValue(rewardList, new TypeReference<List<Reward>>(){});
         rewardDao.insertRewardsIfNotExisting(rewards);
 
         // TODO: REMOVE AFTER DEBUG ------------------------
@@ -60,40 +57,53 @@ public class MainUnityActivity extends UnityPlayerActivity {
         // ------------------------------------------------
     }
 
-    public int rewardCount() {
-        return rewardDao.getRowCount();
+//    @SuppressWarnings("unused")
+//    public int rewardCount() {
+//        return rewardDao.getRowCount();
+//    }
+
+    @SuppressWarnings("unused")
+    public void updateRewardCashedOut(int rewardId) {
+        rewardDao.rewardHasBeenCashedOut(rewardId);
     }
 
+    @SuppressWarnings("unused")
     public String getUnSyncRewards() throws JsonProcessingException {
         List<Reward>  rewards = rewardDao.getUnSyncRewards();
         return mapper.writeValueAsString(rewards);
     }
 
+    @SuppressWarnings("unused")
     public void updateServerTags(List<Integer> idList, List<String> serverTagList) {
         rewardDao.updateServerTags(idList, serverTagList);
     }
 
-    public void updateRewardFromJson(String jsonData) throws JsonProcessingException {
-        Reward reward = mapper.readValue(jsonData, Reward.class);
-        rewardDao.updateReward(reward);
-    }
+//    public void updateRewardFromJson(String jsonData) throws JsonProcessingException {
+//        Reward reward = mapper.readValue(jsonData, Reward.class);
+//        rewardDao.updateReward(reward);
+//    }
 
     // ----------------------------
 
+    @SuppressWarnings("unused")
     public boolean isProfileSet() {
         return profileDao.getRowCount() > 0;
     }
 
+    @SuppressWarnings("unused")
     public String getUsername() {
         return profileDao.getUsername();
     }
 
+    @SuppressWarnings("unused")
     public double getChestAmount() {
         return profileDao.getChestAmount();
     }
 
+    @SuppressWarnings("unused")
     public int getDailyObjective() {return profileDao.getDailyObjective();}
 
+    @SuppressWarnings("unused")
     public void setChestAmount(double chestAmount) {
         if (profileDao.getRowCount() < 1) {
             Log.e(tag, "Nothing to edit");
@@ -101,10 +111,6 @@ public class MainUnityActivity extends UnityPlayerActivity {
         Profile p = profileDao.getProfile();
         p.chestAmount = chestAmount;
         profileDao.update(p);
-    }
-
-    public void updateRewardCashedOut(int rewardId) {
-        rewardDao.rewardHasBeenCashedOut(rewardId);
     }
 
 //    public void setUsername(String username) {
@@ -134,6 +140,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
     // --------------------------------
 
+    @SuppressWarnings("unused")
     public int getStepNumberSinceMidnightThatDay(long timestamp) {
         // Log.d(tag, "hello");
         // long timestamp = System.currentTimeMillis();
@@ -157,6 +164,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
         return stepNumber;
     }
 
+    @SuppressWarnings("unused")
     public String getRecordNewerThanJsonFormat(long timestamp) throws JsonProcessingException {
 
         // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server

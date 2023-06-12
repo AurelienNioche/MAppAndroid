@@ -12,17 +12,20 @@ import com.unity3d.player.UnityPlayerActivity;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class MainUnityActivity extends UnityPlayerActivity {
     public static final String tag = "testing";
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final String CASH_OUT = "cashOut";
+    private static final String REVEAL_NEXT_REWARD = "revealNextReward";
     public static MainUnityActivity instance = null;  // From "Unity As A Library" demo
     StepDao stepDao;
     RewardDao rewardDao;
     ProfileDao profileDao;
-
-    // UTILS ---------------------------------------------------------------------------------
+    StatusDao statusDao;
 
     // --------------------------------------------------------------------------------------------
     // INTERFACE WITH UNITY
@@ -30,10 +33,11 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
     @SuppressWarnings("unused")
     public void initSet(
-            String rewardList,
-            int dailyObjective,
+            String username,
             double chestAmount,
-            String username) throws JsonProcessingException {
+            int dailyObjective,
+            String rewardList
+    ) throws JsonProcessingException {
 
         // Set up profile
         if (profileDao.getRowCount() > 0) {
@@ -41,49 +45,70 @@ public class MainUnityActivity extends UnityPlayerActivity {
         }
         Profile p = new Profile();
         p.username = username;
-        p.dailyObjective = dailyObjective;
-        p.chestAmount = chestAmount;
         profileDao.insert(p);
+
+        Status s = new Status();
+        s.chestAmount = chestAmount;
+        s.dailyObjective = dailyObjective;
+        // TODO: SET DATE ------------------------
+        statusDao.insert(s);
 
         // Set up rewards
         List<Reward> rewards = mapper.readValue(rewardList, new TypeReference<List<Reward>>(){});
         rewardDao.insertRewardsIfNotExisting(rewards);
 
-        // TODO: REMOVE AFTER DEBUG ------------------------
+        // TODO: Just for display, REMOVE AFTER DEBUG ------------------------
         List<Reward> rewardsInTable = rewardDao.getAll();
         rewardsInTable.forEach(reward -> {
             Log.d(tag, "In table: reward id " + String.valueOf(reward.id));
         });
-        // ------------------------------------------------
-    }
-
-//    @SuppressWarnings("unused")
-//    public int rewardCount() {
-//        return rewardDao.getRowCount();
-//    }
-
-    @SuppressWarnings("unused")
-    public void updateRewardCashedOut(int rewardId) {
-        rewardDao.rewardHasBeenCashedOut(rewardId);
     }
 
     @SuppressWarnings("unused")
-    public String getUnSyncRewards() throws JsonProcessingException {
+    public List<String> syncServer(
+            long lastRecordTimestampMillisecond,
+            List<Integer> syncRewardsId,
+            List<String> syncRewardsServerTag)
+            throws JsonProcessingException {
+
+
+        // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
+        List<StepRecord> newRecord = stepDao.getRecordsNewerThan(lastRecordTimestampMillisecond);
+        String newRecordJson =  mapper.writeValueAsString(newRecord);
+
+        rewardDao.updateServerTags(syncRewardsId, syncRewardsServerTag);
+
         List<Reward>  rewards = rewardDao.getUnSyncRewards();
-        return mapper.writeValueAsString(rewards);
+        String unSyncRewards = mapper.writeValueAsString(rewards);
+
+        Status status = statusDao.getStatus();
+        String statusJson = mapper.writeValueAsString(status);
+
+        List<String> r = new ArrayList<>();
+        r.add(profileDao.getUsername());
+        r.add(newRecordJson);
+        r.add(unSyncRewards);
+        r.add(statusJson);
+        return r;
     }
 
     @SuppressWarnings("unused")
-    public void updateServerTags(List<Integer> idList, List<String> serverTagList) {
-        rewardDao.updateServerTags(idList, serverTagList);
+    public List<String> getStatusAndCurrentReward() throws JsonProcessingException {
+
+        // TODO: CHECK PROPER UDPATES TO DO
+
+        Reward  reward = rewardDao.getCurrentReward();
+        String rewardJson = mapper.writeValueAsString(reward);
+
+        Status status = statusDao.getStatus();
+
+        // TODO: CHECK PROPER UDPATES TO DO
+        String statusJson = mapper.writeValueAsString(status);
+        List<String> r = new ArrayList<>();
+        r.add(statusJson);
+        r.add(rewardJson);
+        return r;
     }
-
-//    public void updateRewardFromJson(String jsonData) throws JsonProcessingException {
-//        Reward reward = mapper.readValue(jsonData, Reward.class);
-//        rewardDao.updateReward(reward);
-//    }
-
-    // ----------------------------
 
     @SuppressWarnings("unused")
     public boolean isProfileSet() {
@@ -96,100 +121,44 @@ public class MainUnityActivity extends UnityPlayerActivity {
     }
 
     @SuppressWarnings("unused")
-    public double getChestAmount() {
-        return profileDao.getChestAmount();
-    }
-
-    @SuppressWarnings("unused")
-    public int getDailyObjective() {return profileDao.getDailyObjective();}
-
-    @SuppressWarnings("unused")
-    public void setChestAmount(double chestAmount) {
-        if (profileDao.getRowCount() < 1) {
-            Log.e(tag, "Nothing to edit");
+    public List<String> userTookAction(String action) throws JsonProcessingException {
+        if (Objects.equals(action, CASH_OUT)) {
+            Reward rwd = rewardDao.getCurrentReward();
+            rewardDao.rewardHasBeenCashedOut(rwd.id);
+        } else if (Objects.equals(action, REVEAL_NEXT_REWARD)) {
+            Log.d(tag, "reveal next reward");
+        } else {
+            Log.e(tag, "action not recognized");
         }
-        Profile p = profileDao.getProfile();
-        p.chestAmount = chestAmount;
-        profileDao.update(p);
-    }
-
-//    public void setUsername(String username) {
-//        if (profileDao.getRowCount() > 0) {
-//            Profile profile = profileDao.getProfile();
-//            profile.username = username;
-//            profileDao.update(profile);
-//        } else {
-//            Profile profile = new Profile();
-//            profileDao.insert(profile);
-//        }
-//    }
-//
-//    public boolean isDailyObjectiveSet() {
-//        return profileDao.getDailyObjective() >= 0;
-//    }
-//
-//    public void setDailyObjective(int dailyObjective) {
-//        if (profileDao.getRowCount() > 0) {
-//            Profile profile = profileDao.getProfile();
-//            profile.dailyObjective = dailyObjective;
-//            profileDao.update(profile);
-//        } else {
-//            Log.e(tag, "want to set daily objective but there isn't");
-//        }
-//    }
-
-    // --------------------------------
-
-    @SuppressWarnings("unused")
-    public int getStepNumberSinceMidnightThatDay(long timestamp) {
-        // Log.d(tag, "hello");
-        // long timestamp = System.currentTimeMillis();
-
-        DateTime dt = new DateTime(timestamp, DateTimeZone.getDefault());
-        DateTime midnight = dt.withTimeAtStartOfDay();
-        DateTime nextMidnight = midnight.plusDays(1);
-
-        long midnightTimestamp = midnight.getMillis();
-        long nextMidnightTimestamp = nextMidnight.getMillis();
-
-        // Log.d(tag, "timezone ID:" + dt.getZone().getID());
-        List<StepRecord> records = stepDao.getLastRecordOnInterval(
-                midnightTimestamp,
-                nextMidnightTimestamp);
-        int stepNumber = 0;
-        if (records.size() > 0) {
-            stepNumber = records.get(0).stepMidnight;
-        }
-        // Log.d(tag, "step number: " + stepNumber);
-        return stepNumber;
+        return getStatusAndCurrentReward();
     }
 
     @SuppressWarnings("unused")
-    public String getRecordNewerThanJsonFormat(long timestamp) throws JsonProcessingException {
+    public List<String> userRevealedNextReward() throws JsonProcessingException {
+        // TODO CHANGE STUFF HERE
 
-        // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
-        List<StepRecord> list = stepDao.getRecordsNewerThan(timestamp);
-        return mapper.writeValueAsString(list);
+        return getStatusAndCurrentReward();
     }
-
-    // ------------------------------------------------------------------------------------
-    // Interface with service
-
-//    public void updateReward(Reward reward) throws JsonProcessingException {
-//        reward.localTag = generateStringTag();
-//        rewardDao.updateReward(reward);
-//    }
 
     // -------------------------------------------------------------------------------------
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(tag, "Creating MainUnityActivity");
+        if ( savedInstanceState != null)
+        {
+            int val = savedInstanceState.getInt("LAUNCHED_FROM_NOTIFICATION");
+            Log.d(tag, "val "+ val);
+        } else {
+            Log.d(tag, "didn't find the extras");
+        }
 
         // Interface to the databases
         stepDao = StepDatabase.getInstance(this.getApplicationContext()).stepDao();
         rewardDao = RewardDatabase.getInstance(this.getApplicationContext()).rewardDao();
         profileDao = ProfileDatabase.getInstance(this.getApplicationContext()).profileDao();
+        statusDao = StatusDatabase.getInstance(this.getApplicationContext()).statusDao();
 
         // For starting Unity
         Intent intentUnityPlayer = getIntent();
@@ -248,6 +217,14 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
     void handleIntent(Intent intent) {
         if(intent == null || intent.getExtras() == null) return;
+
+        Log.d(tag, "handleIntent");
+        Log.d(tag, intent.getAction());
+        Log.d(tag, String.valueOf(intent.getExtras()));
+
+        if (intent.getExtras().containsKey("LAUNCHED_FROM_NOTIFICATION")) {
+            Log.d(tag, "val "+ intent.getExtras().getInt("LAUNCHED_FROM_NOTIFICATION"));
+        }
 
         if(intent.getExtras().containsKey("doQuit"))
             if(mUnityPlayer != null) {

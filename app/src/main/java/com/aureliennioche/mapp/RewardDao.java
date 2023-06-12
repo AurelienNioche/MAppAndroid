@@ -72,4 +72,8 @@ public interface RewardDao {
     default void rewardObjectiveHasBeenReached(int rewardId, long ts) {
         rewardObjectiveHasBeenReached(rewardId, ts, generateStringTag());
     };
+
+    default Reward getCurrentReward() {
+        return nextPossibleReward().get(0);
+    };
 }

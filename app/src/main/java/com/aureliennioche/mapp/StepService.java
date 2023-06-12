@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class StepService extends Service implements SensorEventListener {
-    private static final int ONGOING_NOTIFICATION_ID = 999999;
+    private static final int ONGOING_NOTIFICATION_ID = 1;
     private static final String NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID = "NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID";
     private static final String NOTIFICATION_CHANNEL_OBJ_REACHED_ID = "NOTIFICATION_CHANNEL_OBJ_REACHED_ID";
     public static final int MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES = 6;
@@ -65,15 +65,34 @@ public class StepService extends Service implements SensorEventListener {
 
         // Create notification channels
         createNotificationChannelBackgroundTask();
-        createNotificationChannelObjReached();
 
         // Send notification to warn user about the background activity
-        Notification notification = createNotificationBackgroundTask();
+        // If the notification supports a direct reply action, use
+        // PendingIntent.FLAG_MUTABLE instead.
+        Intent notificationIntent = new Intent(this, MainUnityActivity.class);
+
+        PendingIntent pendingIntent =
+                PendingIntent.getActivity(
+                        this,
+                        0,
+                        notificationIntent,
+                        PendingIntent.FLAG_IMMUTABLE);
+
+        Notification notification = new Notification.Builder(
+                this, NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID)
+                    .setContentTitle(getText(R.string.notification_foreground_title))
+                    .setContentText(getText(R.string.notification_foreground_message))
+                    .setSmallIcon(R.drawable.ic_foot)
+                    .setContentIntent(pendingIntent)
+                    // .setTicker(getText(R.string.ticker_text))
+                    .build();
         initSensorManager();
         // Notification ID cannot be 0.
         startForeground(ONGOING_NOTIFICATION_ID, notification);
 
-        // sendNotificationObjectiveReached(2.00, 1300);
+        createNotificationChannelObjReached();
+
+        sendNotificationObjectiveReached(2.00, 1300);
 
         // If we get killed, after returning from here, restart
         return START_STICKY;
@@ -124,31 +143,19 @@ public class StepService extends Service implements SensorEventListener {
         notificationManager.createNotificationChannel(channel);
     }
 
-    Notification createNotificationBackgroundTask() {
-        // If the notification supports a direct reply action, use
-        // PendingIntent.FLAG_MUTABLE instead.
-        Intent notificationIntent = new Intent(this, MainUnityActivity.class);
-
-        PendingIntent pendingIntent =
-                PendingIntent.getActivity(this, 0, notificationIntent,
-                        PendingIntent.FLAG_IMMUTABLE);
-
-        return new Notification.Builder(this, NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID)
-                .setContentTitle(getText(R.string.notification_foreground_title))
-                .setContentText(getText(R.string.notification_foreground_message))
-                .setSmallIcon(R.drawable.ic_foot)
-                .setContentIntent(pendingIntent)
-                // .setTicker(getText(R.string.ticker_text))
-                .build();
-    }
-
     void sendNotificationObjectiveReached(double amount, int objective) {
         // If the notification supports a direct reply action, use
         // PendingIntent.FLAG_MUTABLE instead.
-        Intent notificationIntent = new Intent(this, MainActivity.class);
+        Intent notificationIntent = new Intent(this, MainUnityActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        notificationIntent.setAction(Intent.ACTION_SEND);  // DON'T REMOVE. NECESSARY FOR AN OBSCURE REASON
+        notificationIntent.putExtra("LAUNCHED_FROM_NOTIFICATION", 1);
 
         PendingIntent pendingIntent =
-                PendingIntent.getActivity(this, 0, notificationIntent,
+                PendingIntent.getActivity(
+                        this,
+                        0,
+                        notificationIntent,
                         PendingIntent.FLAG_IMMUTABLE);
 
         String title = getString(R.string.notification_objective_reached_title, amount, objective);
@@ -161,18 +168,12 @@ public class StepService extends Service implements SensorEventListener {
         // .setTicker(getText(R.string.ticker_text))
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
+        notificationId += 2;
         // notificationId is a unique int for each notification that you must define
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        } else {
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             notificationManager.notify(notificationId, builder.build());
+        } else {
+            Log.d(tag, "notification not authorized");
         }
     }
 
@@ -281,6 +282,8 @@ public class StepService extends Service implements SensorEventListener {
 
             // Send notification
             sendNotificationObjectiveReached(rwd.amount, rwd.objective);
+
+            // TODO: UPDATE STATUS, INCLUDING INCREMENTING CHEST
         }
     }
 

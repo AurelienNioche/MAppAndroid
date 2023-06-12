@@ -1,0 +1,107 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "b7cd2e434e6cf09686568e6941553a5b",
+    "entities": [
+      {
+        "tableName": "Status",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `username` TEXT, `dailyObjective` INTEGER NOT NULL DEFAULT -1, `chestAmount` REAL NOT NULL, `timestamp` REAL NOT NULL, `dayOfWeek` TEXT, `month` TEXT, `dayNumber` TEXT, `objective` INTEGER NOT NULL, `waitingUserToDisplayReward` INTEGER NOT NULL, `stepNumber` INTEGER NOT NULL, `experiment_started` INTEGER NOT NULL, `experiment_ended` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "username",
+            "columnName": "username",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dailyObjective",
+            "columnName": "dailyObjective",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "-1"
+          },
+          {
+            "fieldPath": "chestAmount",
+            "columnName": "chestAmount",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dayOfWeek",
+            "columnName": "dayOfWeek",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "month",
+            "columnName": "month",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dayNumber",
+            "columnName": "dayNumber",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "objective",
+            "columnName": "objective",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "waitingUserToDisplayReward",
+            "columnName": "waitingUserToDisplayReward",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stepNumber",
+            "columnName": "stepNumber",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "experiment_started",
+            "columnName": "experiment_started",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "experiment_ended",
+            "columnName": "experiment_ended",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b7cd2e434e6cf09686568e6941553a5b')"
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 package com.aureliennioche.mapp;
 
 import static com.aureliennioche.mapp.Status.EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+import static com.aureliennioche.mapp.Status.EXPERIMENT_JUST_STARTED;
 import static com.aureliennioche.mapp.Status.EXPERIMENT_NOT_STARTED;
 import static com.aureliennioche.mapp.Status.LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
 import static com.aureliennioche.mapp.Status.ONGOING_OBJECTIVE;
@@ -19,6 +20,7 @@ import com.unity3d.player.UnityPlayerActivity;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -58,13 +60,28 @@ public class MainUnityActivity extends UnityPlayerActivity {
         Log.d(tag, "count reward = " + rewardDao.getRowCount());
         Log.d(tag, "count step = " + stepDao.getRowCount());
 
+//        List<Reward> rList = new ArrayList<>();
+//        Reward r = new Reward();
+//        r.id = 34;
+//        rList.add(r);
+//        List<Reward> rewardList;
+//
+//        try {
+//            String json = mapper.writeValueAsString(rList);
+//            rewardList = mapper.readValue(json, new TypeReference<List<Reward>>() {
+//            });
+//        } catch (JsonProcessingException e) {
+//            throw new RuntimeException(e);
+//        }
+//        rewardDao.insertRewardsIfNotExisting(rewardList);
+
         // For starting Unity
         Intent intentUnityPlayer = getIntent();
         handleIntent(intentUnityPlayer);
 
         instance = this;
 
-//        finishAndRemoveTask();
+        // finishAndRemoveTask();
     }
 
     // --------------------------------------------------------------------------------------------
@@ -89,7 +106,14 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         // Set up rewards
         List<Reward> rewards = mapper.readValue(rewardList, new TypeReference<List<Reward>>(){});
+
+        Log.d(tag, "rewards received:");
+        rewards.forEach(item -> Log.d(tag, "reward id"+item.id));
+
         rewardDao.insertRewardsIfNotExisting(rewards);
+
+        Log.d(tag, "rewards saved:");
+        rewardDao.getAll().forEach(item -> Log.d(tag, "reward id"+item.id));
 
         Reward reward = rewardDao.getFirstReward();
 
@@ -102,10 +126,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
         s.stepNumberDay = Math.min(s.dailyObjective, steps);
         s.stepNumberReward = Math.min(reward.objective, steps);
 
-        Log.d(tag, "reward at the beginning");
-        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
-        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reward));
-
+        Log.d(tag, "Status at the INITIALIZATION " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
         statusDao.insert(s);
     }
 
@@ -171,9 +192,8 @@ public class MainUnityActivity extends UnityPlayerActivity {
         Status status = statusDao.getStatus();
         Reward reward = rewardDao.getReward(status.rewardId);
 
-        Log.d(tag, "starting status and reward");
-        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
-        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reward));
+        Log.d(tag, "Status BEFORE updating " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
+        // Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reward));
 
         // First, look if dates of the experiment are gone
         long tsExpBegins = rewardDao.getTsExpBegins();
@@ -200,8 +220,13 @@ public class MainUnityActivity extends UnityPlayerActivity {
                     status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                 }
                 else if (tsNow >= tsExpBegins) {
-                    status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
-                    reward = rewardDao.nextPossibleReward().get(0);
+                    status.state = EXPERIMENT_JUST_STARTED;
+                    List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
+                    if (toCashOut.size() > 0) {
+                        reward = toCashOut.get(0);
+                    } else {
+                        reward = rewardDao.nextPossibleReward().get(0);
+                    }
                 } else {
                     // User still needs to wait
                     Log.d(tag, "Experiment not started yet");
@@ -213,6 +238,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 break;
 
             case WAITING_FOR_USER_TO_CASH_OUT:
+
                 if (Objects.equals(userAction, CASH_OUT)) {
 
                     List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
@@ -237,6 +263,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 }
                 break;
 
+            case EXPERIMENT_JUST_STARTED:
             case WAITING_FOR_USER_TO_REVEAL_NEW_REWARD:
                 if (Objects.equals(userAction, REVEAL_NEXT_REWARD)) {
                     List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
@@ -295,14 +322,12 @@ public class MainUnityActivity extends UnityPlayerActivity {
         int steps = stepDao.getStepNumberSinceMidnightThatDay(reward.ts);
         status.stepNumberDay = Math.min(status.dailyObjective, steps);
         status.stepNumberReward = Math.min(reward.objective, steps);
+        status.dailyObjectiveReached = status.stepNumberDay >= status.dailyObjective;
         status = statusDao.setRewardAttributes(status, reward);
 
         statusDao.update(status);
 
-        Log.d(tag, "Ending status and reward");
-        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
-        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reward));
-
+        Log.d(tag, "Status AFTER updating" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
         return mapper.writeValueAsString(status);
     }
 

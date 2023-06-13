@@ -192,7 +192,7 @@ public class StepService extends Service implements SensorEventListener {
 
     void checkIfObjectiveIsReached(StepRecord rec) {
 
-        // Make unaccessible the rewards older than that day
+        // Make inaccessible the rewards older than that day
         rewardDao.updateAccessibleAccordingToDay(rec.ts);
 
         List<Reward> rewards = rewardDao.notFlaggedObjectiveReachedRewards(rec.stepMidnight);
@@ -201,12 +201,8 @@ public class StepService extends Service implements SensorEventListener {
 
             Log.d(tag, "objective reached");
 
-            // Update reward
+            // Update reward's 'objectiveReached' flag
             rewardDao.rewardObjectiveHasBeenReached(rwd.id, rec.ts);
-            // Update status
-//            Status status = statusDao.getStatus();
-//            status.chestAmount += rwd.amount;
-//            statusDao.update(status);
 
             // Send notification
             sendNotificationObjectiveReached(rwd.amount, rwd.objective);

@@ -20,6 +20,8 @@ public class Status {
     public static final String LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT = "lastRewardOfTheDayAndAllCashOut";
     @Ignore
     public static final String ONGOING_OBJECTIVE = "onGoingObjective";
+    @Ignore
+    public static final String EXPERIMENT_JUST_STARTED = "experimentJustStarted";
 
     @PrimaryKey(autoGenerate = true)
     public int id;

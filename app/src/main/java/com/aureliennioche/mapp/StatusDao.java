@@ -37,12 +37,12 @@ public interface StatusDao {
     default Status setRewardAttributes(Status s, Reward r) {
 
         DateTime dt = new DateTime(r.ts, DateTimeZone.getDefault());
+        s.rewardId = r.id;
+        s.objective = r.objective;
+        s.amount = r.amount;
         s.dayOfTheWeek = dt.dayOfWeek().getAsText();
         s.dayOfTheMonth = dt.dayOfMonth().getAsText();
         s.month = dt.monthOfYear().getAsText();
-        s.objective = r.objective;
-        s.rewardId = r.id;
-        s.amount = r.amount;
         return s;
     }
 

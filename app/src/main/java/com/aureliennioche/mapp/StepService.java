@@ -14,7 +14,6 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Binder;
 import android.os.IBinder;
-import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -22,23 +21,18 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class StepService extends Service implements SensorEventListener {
     private static final int ONGOING_NOTIFICATION_ID = 1;
     private static final String NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID = "NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID";
     private static final String NOTIFICATION_CHANNEL_OBJ_REACHED_ID = "NOTIFICATION_CHANNEL_OBJ_REACHED_ID";
-    public static final int MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES = 6;
-    public static final int KEEP_DATA_NO_LONGER_THAN_X_MONTH = 3;
     public static final String tag = "testing";
-    public boolean appVisibleOnScreen;
+    // public boolean appVisibleOnScreen;
     SensorManager sensorManager;
     StepDao stepDao;
     RewardDao rewardDao;
+    StatusDao statusDao;
     int notificationId = 1;
 
     // Binder given to clients.
@@ -65,6 +59,7 @@ public class StepService extends Service implements SensorEventListener {
 
         // Create notification channels
         createNotificationChannelBackgroundTask();
+        createNotificationChannelObjReached();
 
         // Send notification to warn user about the background activity
         // If the notification supports a direct reply action, use
@@ -89,10 +84,6 @@ public class StepService extends Service implements SensorEventListener {
         initSensorManager();
         // Notification ID cannot be 0.
         startForeground(ONGOING_NOTIFICATION_ID, notification);
-
-        createNotificationChannelObjReached();
-
-        sendNotificationObjectiveReached(2.00, 1300);
 
         // If we get killed, after returning from here, restart
         return START_STICKY;
@@ -148,8 +139,8 @@ public class StepService extends Service implements SensorEventListener {
         // PendingIntent.FLAG_MUTABLE instead.
         Intent notificationIntent = new Intent(this, MainUnityActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        notificationIntent.setAction(Intent.ACTION_SEND);  // DON'T REMOVE. NECESSARY FOR AN OBSCURE REASON
-        notificationIntent.putExtra("LAUNCHED_FROM_NOTIFICATION", 1);
+//        notificationIntent.setAction(Intent.ACTION_SEND);  // DON'T REMOVE. NECESSARY FOR AN OBSCURE REASON
+//        notificationIntent.putExtra("LAUNCHED_FROM_NOTIFICATION", 1);
 
         PendingIntent pendingIntent =
                 PendingIntent.getActivity(
@@ -181,7 +172,7 @@ public class StepService extends Service implements SensorEventListener {
     public void onSensorChanged(SensorEvent sensorEvent) {
         int sensorValue = (int) sensorEvent.values[0];
         Log.d(tag, "onSensorChanged: " + sensorValue);
-        StepRecord rec = recordNewSensorValue(sensorValue);
+        StepRecord rec = stepDao.recordNewSensorValue(sensorValue);
         checkIfObjectiveIsReached(rec);
     }
 
@@ -199,77 +190,10 @@ public class StepService extends Service implements SensorEventListener {
         Log.d(tag, "initSensorManager => Sensor manager initialized");
     }
 
-    StepRecord recordNewSensorValue(int sensorValue)
-    {
-        Log.d(tag, "recordNewSensorValue => Let's record new stuff");
-
-        long timestamp = System.currentTimeMillis();
-        long lastBootTimestamp = timestamp - SystemClock.elapsedRealtime();
-
-        DateTime dt = new DateTime(timestamp, DateTimeZone.getDefault());
-        DateTime midnight = dt.withTimeAtStartOfDay();
-        long midnightTimestamp = midnight.getMillis();
-
-        int stepNumberSinceMidnight = 0; // Default if no recording, or no recording that day
-
-        List<StepRecord> records = stepDao.getLastRecord();
-        // If there is some record
-        if (records.size() > 0)
-        {
-            StepRecord ref = records.get(0);
-            // If there is some record /for today/
-            if (ref.ts > midnightTimestamp)
-            {
-                // If phone has been reboot in the between (leave some error margin),
-                // Then take the meter reading as the number of steps done since the last log
-                // So, steps since midnight is step since midnight from last log plus the meter reading
-                if (lastBootTimestamp > ref.tsLastBoot + 500) { // 500: error margin
-                    stepNumberSinceMidnight = ref.stepMidnight + sensorValue;
-                }
-                // If they were no boot, just consider the progression,
-                // and add it to the previous log
-                else
-                {
-                    stepNumberSinceMidnight = ref.stepMidnight
-                            + (sensorValue - ref.stepLastBoot);
-                }
-            }
-        }
-
-        // Create new record
-        StepRecord rec = new StepRecord(
-                timestamp,
-                lastBootTimestamp,
-                sensorValue,
-                stepNumberSinceMidnight
-        );
-
-        // Record new entry
-        stepDao.insertStepRecord(rec);
-
-        // Delete
-        long bound = midnight.minusMonths(KEEP_DATA_NO_LONGER_THAN_X_MONTH).getMillis();
-        stepDao.deleteRecordsOlderThan(bound);
-
-        // Delete older ones within a 6 min range (we assume we don't need data more than every 6 minutes)
-        long lowerBound = midnight.minusMinutes(MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES).getMillis();
-        lowerBound = Math.max(midnightTimestamp, lowerBound); // Bound the bound to midnight that dat
-        stepDao.deleteRecordsOnInterval(lowerBound, timestamp); // Upper bound is the timestamp of that recording
-
-        return rec;
-    }
-
     void checkIfObjectiveIsReached(StepRecord rec) {
 
-        // Look at the time of the recording
-        DateTime recDt = new DateTime(rec.ts, DateTimeZone.getDefault());
-        DateTime midnightDt = recDt.withTimeAtStartOfDay();
-        long midnightTs = midnightDt.getMillis();
-        long tsEndOfDay =  midnightTs + TimeUnit.DAYS.toMillis(1);
-
         // Make unaccessible the rewards older than that day
-        rewardDao.updateAccessibleAccordingToDay(midnightTs, tsEndOfDay);
-
+        rewardDao.updateAccessibleAccordingToDay(rec.ts);
 
         List<Reward> rewards = rewardDao.notFlaggedObjectiveReachedRewards(rec.stepMidnight);
 
@@ -277,17 +201,15 @@ public class StepService extends Service implements SensorEventListener {
 
             Log.d(tag, "objective reached");
 
-            // Update record
+            // Update reward
             rewardDao.rewardObjectiveHasBeenReached(rwd.id, rec.ts);
+            // Update status
+//            Status status = statusDao.getStatus();
+//            status.chestAmount += rwd.amount;
+//            statusDao.update(status);
 
             // Send notification
             sendNotificationObjectiveReached(rwd.amount, rwd.objective);
-
-            // TODO: UPDATE STATUS, INCLUDING INCREMENTING CHEST
         }
-    }
-
-    public void Tamere() {
-        Log.d(tag, "ta mere du service");
     }
 }

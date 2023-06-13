@@ -12,11 +12,15 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.View;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import java.util.Objects;
 
@@ -60,9 +64,27 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        View decorView = getWindow().getDecorView();
+        // Hide both the navigation bar and the status bar.
+        // SYSTEM_UI_FLAG_FULLSCREEN is only available on Android 4.1 and higher, but as
+        // a general rule, you should design your app to hide the status bar whenever you
+        // hide the navigation bar.
+        int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
+
         Log.d(tag, "MainActivity => Start the MainActivity");
         // Context context = this.getApplicationContext();
 
+
+//        long ts = DateTime.now().getMillis();
+//        DateTime dt = new DateTime(ts, DateTimeZone.getDefault());
+//        String dayOfTheWeek = dt.dayOfWeek().getAsText();
+//        String dayOfTheMonth = dt.dayOfMonth().getAsText();
+//        String month = dt.monthOfYear().getAsText();
+//        Log.d(tag, "date = "+ dayOfTheWeek + dayOfTheMonth + month);
         checkPermissions();
     }
 
@@ -75,23 +97,24 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, StepService.class);
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
 
-        IntentFilter filter = new IntentFilter("MAIN_UNITY_ACTIVITY_CALLBACK");
-
-        BroadcastReceiver receiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                //do something based on the intent's action
-                Log.d(tag,  "MainActivity => Received broadcast");
-                String callback = intent.getStringExtra("CALLBACK");
-                Log.d(tag, "Broadcast is " + callback);
-                if (Objects.equals(callback, "onResume")) {
-                    stepService.Tamere();
-                }
-            }
-        };
-        registerReceiver(receiver, filter);
-
         launchUnity();
+
+//        IntentFilter filter = new IntentFilter("MAIN_UNITY_ACTIVITY_CALLBACK");
+
+//        BroadcastReceiver receiver = new BroadcastReceiver() {
+//            @Override
+//            public void onReceive(Context context, Intent intent) {
+//                //do something based on the intent's action
+//                Log.d(tag,  "MainActivity => Received broadcast");
+//                String callback = intent.getStringExtra("CALLBACK");
+//                Log.d(tag, "Broadcast is " + callback);
+//                if (Objects.equals(callback, "onStop")) {
+//                    Status status = status
+//                    // stepService.onStopApp();
+//                }
+//            }
+//        };
+//        registerReceiver(receiver, filter);
     }
 
     public void launchUnity() {

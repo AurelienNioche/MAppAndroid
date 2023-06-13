@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "b7cd2e434e6cf09686568e6941553a5b",
+    "identityHash": "a17baef5aa74bc575c9a2c300b56bbe3",
     "entities": [
       {
         "tableName": "Status",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `username` TEXT, `dailyObjective` INTEGER NOT NULL DEFAULT -1, `chestAmount` REAL NOT NULL, `timestamp` REAL NOT NULL, `dayOfWeek` TEXT, `month` TEXT, `dayNumber` TEXT, `objective` INTEGER NOT NULL, `waitingUserToDisplayReward` INTEGER NOT NULL, `stepNumber` INTEGER NOT NULL, `experiment_started` INTEGER NOT NULL, `experiment_ended` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `state` TEXT, `dailyObjective` INTEGER NOT NULL, `dailyObjectiveReached` INTEGER NOT NULL, `chestAmount` REAL NOT NULL, `dayOfTheWeek` TEXT, `dayOfTheMonth` TEXT, `month` TEXT, `stepNumberDay` INTEGER NOT NULL, `stepNumberReward` INTEGER NOT NULL, `rewardId` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `amount` REAL NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -15,8 +15,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "username",
-            "columnName": "username",
+            "fieldPath": "state",
+            "columnName": "state",
             "affinity": "TEXT",
             "notNull": false
           },
@@ -24,8 +24,13 @@
             "fieldPath": "dailyObjective",
             "columnName": "dailyObjective",
             "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "-1"
+            "notNull": true
+          },
+          {
+            "fieldPath": "dailyObjectiveReached",
+            "columnName": "dailyObjectiveReached",
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "chestAmount",
@@ -34,14 +39,14 @@
             "notNull": true
           },
           {
-            "fieldPath": "timestamp",
-            "columnName": "timestamp",
-            "affinity": "REAL",
-            "notNull": true
+            "fieldPath": "dayOfTheWeek",
+            "columnName": "dayOfTheWeek",
+            "affinity": "TEXT",
+            "notNull": false
           },
           {
-            "fieldPath": "dayOfWeek",
-            "columnName": "dayOfWeek",
+            "fieldPath": "dayOfTheMonth",
+            "columnName": "dayOfTheMonth",
             "affinity": "TEXT",
             "notNull": false
           },
@@ -52,10 +57,22 @@
             "notNull": false
           },
           {
-            "fieldPath": "dayNumber",
-            "columnName": "dayNumber",
-            "affinity": "TEXT",
-            "notNull": false
+            "fieldPath": "stepNumberDay",
+            "columnName": "stepNumberDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stepNumberReward",
+            "columnName": "stepNumberReward",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rewardId",
+            "columnName": "rewardId",
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "objective",
@@ -64,27 +81,9 @@
             "notNull": true
           },
           {
-            "fieldPath": "waitingUserToDisplayReward",
-            "columnName": "waitingUserToDisplayReward",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "stepNumber",
-            "columnName": "stepNumber",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "experiment_started",
-            "columnName": "experiment_started",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "experiment_ended",
-            "columnName": "experiment_ended",
-            "affinity": "INTEGER",
+            "fieldPath": "amount",
+            "columnName": "amount",
+            "affinity": "REAL",
             "notNull": true
           }
         ],
@@ -101,7 +100,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b7cd2e434e6cf09686568e6941553a5b')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a17baef5aa74bc575c9a2c300b56bbe3')"
     ]
   }
 }

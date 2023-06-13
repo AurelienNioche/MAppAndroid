@@ -1,12 +1,12 @@
 <resources>
     <string name="app_name">MApp</string>
     <string name="game_view_content_description">Game view</string>
-    <string name="notification_foreground_message">Your number of steps are collected in the background.</string>
-    <string name="notification_foreground_title">Counting the steps…</string>
     <string name="notification_foreground_channel_name">Background recording</string>
     <string name="notification_foreground_channel_description">Inform you that your number of steps are recorded.</string>
-    <string name="notification_objective_reached_title">Congrats, %2$d steps, you can cash out £%1$.2f!</string>
-    <string name="notification_objective_reached_message">Open the app for cashing out your reward!</string>
-    <string name="notification_channel_obj_reached_description">For not missing your rewards!</string>
     <string name="notification_channel_obj_reached_name">Rewards</string>
+    <string name="notification_channel_obj_reached_description">For not missing your rewards!</string>
+    <string name="notification_foreground_title">Counting the steps…</string>
+    <string name="notification_foreground_message">Your number of steps are collected in the background.</string>
+    <string name="notification_objective_reached_title">Congrats, %2$d steps, you can cash out £%1$.2f!</string>
+    <string name="notification_objective_reached_message">Open the app for cashing out your reward and see your next objective!</string>
 </resources>

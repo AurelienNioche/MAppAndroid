@@ -11,7 +11,7 @@ public class StepRecord {
     public int id;
 
     @ColumnInfo()
-    public long ts;  // Timestamp of the recording
+    public long ts;  // Timestamp of the recording in millisecond universal time
 
     @ColumnInfo()
     public long tsLastBoot; // Timestamp of the last boot

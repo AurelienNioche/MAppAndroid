@@ -6,6 +6,9 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -16,8 +19,14 @@ public interface RewardDao {
     @Query("SELECT * FROM reward")
     List<Reward> getAll();
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(Reward reward);
+
+    @Query("SELECT * FROM reward WHERE id = :id")
+    Reward getReward(int id);
+
+    @Query("SELECT * FROM reward ORDER BY ts, objective LIMIT 1")
+    Reward getFirstReward();
 
     @Query("SELECT COUNT(id) FROM reward")
     int getRowCount();
@@ -46,7 +55,7 @@ public interface RewardDao {
     @Query("SELECT * FROM reward WHERE accessible = 1 ORDER BY ts, objective")
     List<Reward> accessibleRewards();
 
-    @Query("SELECT * FROM reward WHERE accessible = 1 AND objective <= :stepNumber ORDER BY objective")
+    @Query("SELECT * FROM reward WHERE accessible = 1 AND objectiveReached = 0 AND objective <= :stepNumber ORDER BY objective")
     List<Reward> notFlaggedObjectiveReachedRewards(int stepNumber);
 
     @Query("SELECT * FROM reward WHERE objectiveReached = 1 AND cashedOut = 0 ORDER BY ts, objective")
@@ -55,7 +64,16 @@ public interface RewardDao {
     @Query("UPDATE reward SET accessible = 0 WHERE ts < :midnight AND ts >= :tsEndOfDay")
     void updateAccessibleAccordingToDay(long midnight, long tsEndOfDay);
 
-    @Query("SELECT * FROM reward WHERE objective = (SELECT MIN(OBJECTIVE) FROM reward WHERE ACCESSIBLE = 1)")
+    default void updateAccessibleAccordingToDay(long timestamp) {
+        DateTime dt = new DateTime(timestamp, DateTimeZone.getDefault());
+        DateTime midnight = dt.withTimeAtStartOfDay();
+        long midnightTimestamp = midnight.getMillis();
+        DateTime nextMidnight = midnight.plusDays(1);
+        long tsEndOfDay = nextMidnight.getMillis();
+        updateAccessibleAccordingToDay(midnightTimestamp, tsEndOfDay);
+    }
+
+    @Query("SELECT * FROM reward WHERE objective = (SELECT MIN(OBJECTIVE) FROM reward WHERE ACCESSIBLE = 1 AND objectiveReached = 0)")
     List<Reward> nextPossibleReward();
 
     @Query("UPDATE reward SET cashedOut = 1, cashedOutTs = :ts, localTag = :uuid WHERE id = :rewardId")
@@ -73,7 +91,33 @@ public interface RewardDao {
         rewardObjectiveHasBeenReached(rewardId, ts, generateStringTag());
     };
 
-    default Reward getCurrentReward() {
-        return nextPossibleReward().get(0);
-    };
+    @Query("SELECT COUNT(id) FROM reward WHERE accessible = 1 AND objective > :refObjective")
+    int countAccessibleRewardWithHigherObjective(int refObjective);
+
+    default boolean isLastRewardOfTheDay(Reward reward) {
+        return countAccessibleRewardWithHigherObjective(reward.objective) == 0;
+    }
+
+    @Query("DELETE FROM reward")
+    void nukeTable();
+
+    @Query("SELECT MIN(ts) FROM reward")
+    long minTs();
+
+    @Query("SELECT MAX(ts) FROM reward")
+    long maxTs();
+
+    default long getTsExpBegins() {
+        long ts = minTs();
+        DateTime dt = new DateTime(ts, DateTimeZone.getDefault());
+        return dt.getMillis();
+    }
+
+    default long getTsExpEnds() {
+        long ts = maxTs();
+        DateTime dt = new DateTime(ts, DateTimeZone.getDefault());
+        DateTime midnight = dt.withTimeAtStartOfDay();
+        DateTime nextMidnight = midnight.plusDays(1);
+        return nextMidnight.getMillis();
+    }
 }

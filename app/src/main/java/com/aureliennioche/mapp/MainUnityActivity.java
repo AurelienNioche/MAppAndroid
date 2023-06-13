@@ -1,5 +1,12 @@
 package com.aureliennioche.mapp;
 
+import static com.aureliennioche.mapp.Status.EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+import static com.aureliennioche.mapp.Status.EXPERIMENT_NOT_STARTED;
+import static com.aureliennioche.mapp.Status.LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
+import static com.aureliennioche.mapp.Status.ONGOING_OBJECTIVE;
+import static com.aureliennioche.mapp.Status.WAITING_FOR_USER_TO_CASH_OUT;
+import static com.aureliennioche.mapp.Status.WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,7 +19,6 @@ import com.unity3d.player.UnityPlayerActivity;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -26,6 +32,40 @@ public class MainUnityActivity extends UnityPlayerActivity {
     RewardDao rewardDao;
     ProfileDao profileDao;
     StatusDao statusDao;
+
+    // ------------------------------------------------------------------------------------
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Log.d(tag, "Creating MainUnityActivity");
+
+        // Interface to the databases
+        stepDao = StepDatabase.getInstance(this.getApplicationContext()).stepDao();
+        rewardDao = RewardDatabase.getInstance(this.getApplicationContext()).rewardDao();
+        profileDao = ProfileDatabase.getInstance(this.getApplicationContext()).profileDao();
+        statusDao = StatusDatabase.getInstance(this.getApplicationContext()).statusDao();
+
+        // TODO: REMOVE THAT ---------------------
+        stepDao.nukeTable();
+        rewardDao.nukeTable();
+        profileDao.nukeTable();
+        statusDao.nukeTable();
+        // ---------------------------------------
+
+        Log.d(tag, "count profile = " + profileDao.getRowCount());
+        Log.d(tag, "count status = " + statusDao.getRowCount());
+        Log.d(tag, "count reward = " + rewardDao.getRowCount());
+        Log.d(tag, "count step = " + stepDao.getRowCount());
+
+        // For starting Unity
+        Intent intentUnityPlayer = getIntent();
+        handleIntent(intentUnityPlayer);
+
+        instance = this;
+
+//        finishAndRemoveTask();
+    }
 
     // --------------------------------------------------------------------------------------------
     // INTERFACE WITH UNITY
@@ -41,36 +81,44 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         // Set up profile
         if (profileDao.getRowCount() > 0) {
-            Log.e(tag, "Profile was already existing");
+            Log.d(tag, "THIS SHOULD NOT HAPPEN");
         }
         Profile p = new Profile();
         p.username = username;
         profileDao.insert(p);
 
-        Status s = new Status();
-        s.chestAmount = chestAmount;
-        s.dailyObjective = dailyObjective;
-        // TODO: SET DATE ------------------------
-        statusDao.insert(s);
-
         // Set up rewards
         List<Reward> rewards = mapper.readValue(rewardList, new TypeReference<List<Reward>>(){});
         rewardDao.insertRewardsIfNotExisting(rewards);
 
-        // TODO: Just for display, REMOVE AFTER DEBUG ------------------------
-        List<Reward> rewardsInTable = rewardDao.getAll();
-        rewardsInTable.forEach(reward -> {
-            Log.d(tag, "In table: reward id " + String.valueOf(reward.id));
-        });
+        Reward reward = rewardDao.getFirstReward();
+
+        Status s = new Status();
+        s.state = EXPERIMENT_NOT_STARTED;
+        s.chestAmount = chestAmount;
+        s.dailyObjective = dailyObjective;
+        s = statusDao.setRewardAttributes(s, reward);
+        int steps = stepDao.getStepNumberSinceMidnightThatDay(reward.ts);
+        s.stepNumberDay = Math.min(s.dailyObjective, steps);
+        s.stepNumberReward = Math.min(reward.objective, steps);
+
+        Log.d(tag, "reward at the beginning");
+        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
+        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reward));
+
+        statusDao.insert(s);
     }
 
     @SuppressWarnings("unused")
-    public List<String> syncServer(
+    public String[] syncServer(
             long lastRecordTimestampMillisecond,
-            List<Integer> syncRewardsId,
-            List<String> syncRewardsServerTag)
+            String syncRewardsIdJSON,
+            String syncRewardsServerTagJSON)
             throws JsonProcessingException {
-
+        Log.d(tag, "syncRewardsIdJson="+syncRewardsIdJSON);
+        Log.d(tag, "syncRewardsIdJson="+syncRewardsServerTagJSON);
+        List<Integer> syncRewardsId = mapper.readValue(syncRewardsIdJSON, new TypeReference<List<Integer>>() {});
+        List<String> syncRewardsServerTag = mapper.readValue(syncRewardsServerTagJSON, new TypeReference<List<String>>() {});
 
         // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
         List<StepRecord> newRecord = stepDao.getRecordsNewerThan(lastRecordTimestampMillisecond);
@@ -83,89 +131,189 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         Status status = statusDao.getStatus();
         String statusJson = mapper.writeValueAsString(status);
-
-        List<String> r = new ArrayList<>();
-        r.add(profileDao.getUsername());
-        r.add(newRecordJson);
-        r.add(unSyncRewards);
-        r.add(statusJson);
-        return r;
+        String username = profileDao.getUsername();
+        return new String[]{
+            username, newRecordJson, unSyncRewards, statusJson
+        };
     }
 
     @SuppressWarnings("unused")
-    public List<String> getStatusAndCurrentReward() throws JsonProcessingException {
+    public String[] syncServer()
+            throws JsonProcessingException {
 
-        // TODO: CHECK PROPER UDPATES TO DO
+        // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
+        List<StepRecord> newRecord = stepDao.getAll();
+        String newRecordJson =  mapper.writeValueAsString(newRecord);
 
-        Reward  reward = rewardDao.getCurrentReward();
-        String rewardJson = mapper.writeValueAsString(reward);
+        List<Reward>  rewards = rewardDao.getUnSyncRewards();
+        String unSyncRewards = mapper.writeValueAsString(rewards);
 
         Status status = statusDao.getStatus();
-
-        // TODO: CHECK PROPER UDPATES TO DO
         String statusJson = mapper.writeValueAsString(status);
-        List<String> r = new ArrayList<>();
-        r.add(statusJson);
-        r.add(rewardJson);
-        return r;
+
+        String username = profileDao.getUsername();
+        return new String[]{
+                username, newRecordJson, unSyncRewards, statusJson
+        };
+    }
+
+    @SuppressWarnings("unused")
+    public String getStatus(String userAction) throws JsonProcessingException {
+
+        if (Objects.equals(userAction, CASH_OUT)) {
+            Log.d(tag, "Just for info: User clicked cashed out");
+        }
+
+        else if (Objects.equals(userAction, REVEAL_NEXT_REWARD)) {
+            Log.d(tag, "Just for info: User clicked next reward");
+        }
+
+        Status status = statusDao.getStatus();
+        Reward reward = rewardDao.getReward(status.rewardId);
+
+        Log.d(tag, "starting status and reward");
+        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
+        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reward));
+
+        // First, look if dates of the experiment are gone
+        long tsExpBegins = rewardDao.getTsExpBegins();
+        long tsExpEnds = rewardDao.getTsExpEnds();
+        long tsNow = System.currentTimeMillis();
+
+        long midnightTs = new DateTime(tsNow, DateTimeZone.getDefault()).withTimeAtStartOfDay().getMillis();
+        boolean rewardWasYesterdayOrBefore = reward.ts < midnightTs;
+
+        boolean experiment_started = tsNow >= tsExpBegins;
+        boolean experiment_ended = tsNow >= tsExpEnds;
+
+        // Make "accessible" only today's rewards
+        rewardDao.updateAccessibleAccordingToDay(tsNow);
+
+        // TODO: remember specific case while changing of day
+        //  when waiting user to cash out
+
+        switch (status.state) {
+            case EXPERIMENT_NOT_STARTED:
+                if (tsNow >= tsExpEnds) {
+                    // The user miss all the experience
+                    // We don't really expect that to happen
+                    status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+                }
+                else if (tsNow >= tsExpBegins) {
+                    status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                    reward = rewardDao.nextPossibleReward().get(0);
+                } else {
+                    // User still needs to wait
+                    Log.d(tag, "Experiment not started yet");
+                }
+                break;
+
+            case EXPERIMENT_ENDED_AND_ALL_CASH_OUT:
+                // Nothing specific to do here, that's the END state
+                break;
+
+            case WAITING_FOR_USER_TO_CASH_OUT:
+                if (Objects.equals(userAction, CASH_OUT)) {
+
+                    List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
+                    reward = toCashOut.get(0);
+                    rewardDao.rewardHasBeenCashedOut(reward.id);
+                    status.chestAmount += reward.amount;
+                    Log.d(tag, "User cashed out");
+
+                    if (toCashOut.size() > 1) {
+                        reward = toCashOut.get(1);
+                        status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                    } else if (tsNow >= tsExpEnds) {
+                        status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+                    } else if (rewardDao.isLastRewardOfTheDay(reward)) {
+                        status.state = LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
+                    } else {
+                        reward = rewardDao.nextPossibleReward().get(0);
+                        status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                    }
+                } else {
+                    Log.d(tag, "Waiting for user to cash out");
+                }
+                break;
+
+            case WAITING_FOR_USER_TO_REVEAL_NEW_REWARD:
+                if (Objects.equals(userAction, REVEAL_NEXT_REWARD)) {
+                    List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
+                    Log.d(tag, "user wants to reveal a new reward");
+                    if (toCashOut.size() > 0) {
+                        reward = toCashOut.get(0);
+                        status.state = WAITING_FOR_USER_TO_CASH_OUT;
+                    } else if (tsNow >= tsExpEnds) {
+                        status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+                    } else if (rewardDao.isLastRewardOfTheDay(reward)) {
+                        status.state = LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
+                    } else {
+                        reward = rewardDao.nextPossibleReward().get(0);
+                        status.state = ONGOING_OBJECTIVE;
+                    }
+                } else if (rewardDao.rewardsThatNeedCashOut().size() < 1 && tsNow >= tsExpEnds) {
+                    status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+                } else {
+                    Log.d(tag, "Waiting for user to reveal new reward");
+                }
+
+                break;
+
+            case LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT:
+
+                if (rewardWasYesterdayOrBefore) {
+                    // We change of day
+                    if (tsNow >= tsExpEnds) {
+                        status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+                    } else {
+                        reward = rewardDao.nextPossibleReward().get(0);
+                        status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                    }
+                }
+                break;
+
+            case ONGOING_OBJECTIVE:
+                // Check that the objective has not been reached
+                if (reward.objectiveReached) {
+                    status.state = WAITING_FOR_USER_TO_CASH_OUT;
+                } else if (rewardWasYesterdayOrBefore) {
+                    if (tsNow >= tsExpEnds) {
+                        status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+                    } else {
+                        reward = rewardDao.nextPossibleReward().get(0);
+                        status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                    }
+                }
+                break;
+
+            default:
+                Log.d(tag, "Case not handled");
+                break;
+        }
+
+        int steps = stepDao.getStepNumberSinceMidnightThatDay(reward.ts);
+        status.stepNumberDay = Math.min(status.dailyObjective, steps);
+        status.stepNumberReward = Math.min(reward.objective, steps);
+        status = statusDao.setRewardAttributes(status, reward);
+
+        statusDao.update(status);
+
+        Log.d(tag, "Ending status and reward");
+        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
+        Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reward));
+
+        return mapper.writeValueAsString(status);
     }
 
     @SuppressWarnings("unused")
     public boolean isProfileSet() {
-        return profileDao.getRowCount() > 0;
-    }
-
-    @SuppressWarnings("unused")
-    public String getUsername() {
-        return profileDao.getUsername();
-    }
-
-    @SuppressWarnings("unused")
-    public List<String> userTookAction(String action) throws JsonProcessingException {
-        if (Objects.equals(action, CASH_OUT)) {
-            Reward rwd = rewardDao.getCurrentReward();
-            rewardDao.rewardHasBeenCashedOut(rwd.id);
-        } else if (Objects.equals(action, REVEAL_NEXT_REWARD)) {
-            Log.d(tag, "reveal next reward");
-        } else {
-            Log.e(tag, "action not recognized");
-        }
-        return getStatusAndCurrentReward();
-    }
-
-    @SuppressWarnings("unused")
-    public List<String> userRevealedNextReward() throws JsonProcessingException {
-        // TODO CHANGE STUFF HERE
-
-        return getStatusAndCurrentReward();
+        boolean val =profileDao.getRowCount() > 0;
+        Log.d(tag, "Profile set = "+ val);
+        return val;
     }
 
     // -------------------------------------------------------------------------------------
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        Log.d(tag, "Creating MainUnityActivity");
-        if ( savedInstanceState != null)
-        {
-            int val = savedInstanceState.getInt("LAUNCHED_FROM_NOTIFICATION");
-            Log.d(tag, "val "+ val);
-        } else {
-            Log.d(tag, "didn't find the extras");
-        }
-
-        // Interface to the databases
-        stepDao = StepDatabase.getInstance(this.getApplicationContext()).stepDao();
-        rewardDao = RewardDatabase.getInstance(this.getApplicationContext()).rewardDao();
-        profileDao = ProfileDatabase.getInstance(this.getApplicationContext()).profileDao();
-        statusDao = StatusDatabase.getInstance(this.getApplicationContext()).statusDao();
-
-        // For starting Unity
-        Intent intentUnityPlayer = getIntent();
-        handleIntent(intentUnityPlayer);
-
-        instance = this;
-    }
 
     @Override
     protected void onDestroy() {
@@ -183,18 +331,18 @@ public class MainUnityActivity extends UnityPlayerActivity {
     @Override
     protected void onStop() {
         Log.d(tag, "UnityActivity => on stop");
-        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
-        intent.putExtra("CALLBACK", "onStop");
-        sendBroadcast(intent);
+//        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
+//        intent.putExtra("CALLBACK", "onStop");
+//        sendBroadcast(intent);
         super.onStop();
     }
 
     @Override
     protected void onPause() {
         Log.d(tag, "UnityActivity => on pause");
-        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
-        intent.putExtra("CALLBACK", "onPause");
-        sendBroadcast(intent);
+//        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
+//        intent.putExtra("CALLBACK", "onPause");
+//        sendBroadcast(intent);
         super.onPause();
     }
 
@@ -203,9 +351,9 @@ public class MainUnityActivity extends UnityPlayerActivity {
         super.onResume();
 
         Log.d(tag, "UnityActivity => on resume");
-        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
-        intent.putExtra("CALLBACK", "onResume");
-        sendBroadcast(intent);
+//        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
+//        intent.putExtra("CALLBACK", "onResume");
+//        sendBroadcast(intent);
     }
 
     @Override
@@ -218,13 +366,13 @@ public class MainUnityActivity extends UnityPlayerActivity {
     void handleIntent(Intent intent) {
         if(intent == null || intent.getExtras() == null) return;
 
-        Log.d(tag, "handleIntent");
-        Log.d(tag, intent.getAction());
-        Log.d(tag, String.valueOf(intent.getExtras()));
-
-        if (intent.getExtras().containsKey("LAUNCHED_FROM_NOTIFICATION")) {
-            Log.d(tag, "val "+ intent.getExtras().getInt("LAUNCHED_FROM_NOTIFICATION"));
-        }
+//        Log.d(tag, "handleIntent");
+////        Log.d(tag, intent.getAction());
+////        Log.d(tag, String.valueOf(intent.getExtras()));
+//
+//        if (intent.getExtras().containsKey("LAUNCHED_FROM_NOTIFICATION")) {
+//            Log.d(tag, "Intent: val "+ intent.getExtras().getInt("LAUNCHED_FROM_NOTIFICATION"));
+//        }
 
         if(intent.getExtras().containsKey("doQuit"))
             if(mUnityPlayer != null) {

@@ -1,11 +1,9 @@
 package com.aureliennioche.mapp;
 
-import androidx.room.Entity;
-
 public class Config {
     @SuppressWarnings("unused")
     // Macbook pro at home: "ws://192.168.0.101:8000/ws"
-    // Uni:
+    // Uni: "wss://samoa.dcs.gla.ac.uk/mapp/ws"
     public String websocketUrl="ws://192.168.0.101:8000/ws";  //TODO: Be sure to set that correctly for production
     @SuppressWarnings("unused")
     public double websocketTimeReconnection = 2;

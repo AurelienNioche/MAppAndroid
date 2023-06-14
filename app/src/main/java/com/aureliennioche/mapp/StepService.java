@@ -27,13 +27,13 @@ public class StepService extends Service implements SensorEventListener {
     private static final int ONGOING_NOTIFICATION_ID = 1;
     private static final String NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID = "NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID";
     private static final String NOTIFICATION_CHANNEL_OBJ_REACHED_ID = "NOTIFICATION_CHANNEL_OBJ_REACHED_ID";
+
+    public static final String REWARD_NOTIFICATION_TAG = "REWARD";
     public static final String tag = "testing";
     // public boolean appVisibleOnScreen;
     SensorManager sensorManager;
     StepDao stepDao;
     RewardDao rewardDao;
-    StatusDao statusDao;
-    int notificationId = 1;
 
     // Binder given to clients.
     private final IBinder binder = new LocalBinder();
@@ -134,7 +134,7 @@ public class StepService extends Service implements SensorEventListener {
         notificationManager.createNotificationChannel(channel);
     }
 
-    void sendNotificationObjectiveReached(double amount, int objective) {
+    void sendNotificationObjectiveReached(Reward reward) {
         // If the notification supports a direct reply action, use
         // PendingIntent.FLAG_MUTABLE instead.
         Intent notificationIntent = new Intent(this, MainUnityActivity.class)
@@ -149,7 +149,7 @@ public class StepService extends Service implements SensorEventListener {
                         notificationIntent,
                         PendingIntent.FLAG_IMMUTABLE);
 
-        String title = getString(R.string.notification_objective_reached_title, amount, objective);
+        String title = getString(R.string.notification_objective_reached_title, reward.amount, reward.objective);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_OBJ_REACHED_ID)
                 .setContentTitle(title)
                 .setContentText(getText(R.string.notification_objective_reached_message))
@@ -159,10 +159,10 @@ public class StepService extends Service implements SensorEventListener {
         // .setTicker(getText(R.string.ticker_text))
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
-        notificationId += 2;
+        int notificationId = reward.id;
         // notificationId is a unique int for each notification that you must define
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-            notificationManager.notify(notificationId, builder.build());
+            notificationManager.notify(REWARD_NOTIFICATION_TAG, notificationId, builder.build());
         } else {
             Log.d(tag, "notification not authorized");
         }
@@ -205,7 +205,7 @@ public class StepService extends Service implements SensorEventListener {
             rewardDao.rewardObjectiveHasBeenReached(rwd.id, rec.ts);
 
             // Send notification
-            sendNotificationObjectiveReached(rwd.amount, rwd.objective);
+            sendNotificationObjectiveReached(rwd);
         }
     }
 }

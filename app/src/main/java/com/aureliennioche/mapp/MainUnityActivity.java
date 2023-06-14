@@ -8,9 +8,12 @@ import static com.aureliennioche.mapp.Status.ONGOING_OBJECTIVE;
 import static com.aureliennioche.mapp.Status.WAITING_FOR_USER_TO_CASH_OUT;
 import static com.aureliennioche.mapp.Status.WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
 
+import android.app.Notification;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+
+import androidx.core.app.NotificationManagerCompat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -20,7 +23,6 @@ import com.unity3d.player.UnityPlayerActivity;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-// import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -87,6 +89,13 @@ public class MainUnityActivity extends UnityPlayerActivity {
     // --------------------------------------------------------------------------------------------
     // INTERFACE WITH UNITY
     // --------------------------------------------------------------------------------------------
+
+    @SuppressWarnings("unused")
+    public String getConfig() throws JsonProcessingException {
+        Config config = new Config();
+        Log.d(tag, mapper.writeValueAsString(config));
+        return mapper.writeValueAsString(config);
+    }
 
     @SuppressWarnings("unused")
     public void initSet(
@@ -200,6 +209,10 @@ public class MainUnityActivity extends UnityPlayerActivity {
                     rewardDao.rewardHasBeenCashedOut(reward.id);
                     status.chestAmount += reward.amount;
                     Log.d(tag, "User cashed out");
+
+                    // Cancel the notification if still there
+                    NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);;
+                    notificationManager.cancel(StepService.REWARD_NOTIFICATION_TAG, reward.id);
 
                     if (toCashOut.size() > 1) {
                         reward = toCashOut.get(1);

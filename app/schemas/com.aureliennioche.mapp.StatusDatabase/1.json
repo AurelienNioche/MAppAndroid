@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "a17baef5aa74bc575c9a2c300b56bbe3",
+    "identityHash": "9934974950de45b262fb2622088046dd",
     "entities": [
       {
         "tableName": "Status",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `state` TEXT, `dailyObjective` INTEGER NOT NULL, `dailyObjectiveReached` INTEGER NOT NULL, `chestAmount` REAL NOT NULL, `dayOfTheWeek` TEXT, `dayOfTheMonth` TEXT, `month` TEXT, `stepNumberDay` INTEGER NOT NULL, `stepNumberReward` INTEGER NOT NULL, `rewardId` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `amount` REAL NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `state` TEXT, `dailyObjective` INTEGER NOT NULL, `chestAmount` REAL NOT NULL, `dayOfTheWeek` TEXT, `dayOfTheMonth` TEXT, `month` TEXT, `stepNumberDay` INTEGER NOT NULL, `stepNumberReward` INTEGER NOT NULL, `rewardId` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `amount` REAL NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -23,12 +23,6 @@
           {
             "fieldPath": "dailyObjective",
             "columnName": "dailyObjective",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "dailyObjectiveReached",
-            "columnName": "dailyObjectiveReached",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -100,7 +94,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a17baef5aa74bc575c9a2c300b56bbe3')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9934974950de45b262fb2622088046dd')"
     ]
   }
 }

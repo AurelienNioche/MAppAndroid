@@ -30,8 +30,6 @@ public class Status {
     @ColumnInfo
     public int dailyObjective = -1;
     @ColumnInfo
-    public boolean dailyObjectiveReached = false;
-    @ColumnInfo
     public double chestAmount = -1;
     @ColumnInfo
     public String dayOfTheWeek = "dayOfTheWeek";

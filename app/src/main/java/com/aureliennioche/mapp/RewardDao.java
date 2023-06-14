@@ -110,7 +110,7 @@ public interface RewardDao {
     default long getTsExpBegins() {
         long ts = minTs();
         DateTime dt = new DateTime(ts, DateTimeZone.getDefault());
-        return dt.getMillis();
+        return dt.withTimeAtStartOfDay().getMillis();
     }
 
     default long getTsExpEnds() {

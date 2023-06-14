@@ -20,7 +20,7 @@ import com.unity3d.player.UnityPlayerActivity;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import java.util.ArrayList;
+// import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -48,17 +48,17 @@ public class MainUnityActivity extends UnityPlayerActivity {
         profileDao = ProfileDatabase.getInstance(this.getApplicationContext()).profileDao();
         statusDao = StatusDatabase.getInstance(this.getApplicationContext()).statusDao();
 
-        // TODO: REMOVE THAT ---------------------
-        stepDao.nukeTable();
-        rewardDao.nukeTable();
-        profileDao.nukeTable();
-        statusDao.nukeTable();
-        // ---------------------------------------
-
-        Log.d(tag, "count profile = " + profileDao.getRowCount());
-        Log.d(tag, "count status = " + statusDao.getRowCount());
-        Log.d(tag, "count reward = " + rewardDao.getRowCount());
-        Log.d(tag, "count step = " + stepDao.getRowCount());
+//        // TODO: REMOVE THAT ---------------------
+//        stepDao.nukeTable();
+//        rewardDao.nukeTable();
+//        profileDao.nukeTable();
+//        statusDao.nukeTable();
+//        // ---------------------------------------
+//
+//        Log.d(tag, "count profile = " + profileDao.getRowCount());
+//        Log.d(tag, "count status = " + statusDao.getRowCount());
+//        Log.d(tag, "count reward = " + rewardDao.getRowCount());
+//        Log.d(tag, "count step = " + stepDao.getRowCount());
 
 //        List<Reward> rList = new ArrayList<>();
 //        Reward r = new Reward();
@@ -131,54 +131,6 @@ public class MainUnityActivity extends UnityPlayerActivity {
     }
 
     @SuppressWarnings("unused")
-    public String[] syncServer(
-            long lastRecordTimestampMillisecond,
-            String syncRewardsIdJSON,
-            String syncRewardsServerTagJSON)
-            throws JsonProcessingException {
-        Log.d(tag, "syncRewardsIdJson="+syncRewardsIdJSON);
-        Log.d(tag, "syncRewardsIdJson="+syncRewardsServerTagJSON);
-        List<Integer> syncRewardsId = mapper.readValue(syncRewardsIdJSON, new TypeReference<List<Integer>>() {});
-        List<String> syncRewardsServerTag = mapper.readValue(syncRewardsServerTagJSON, new TypeReference<List<String>>() {});
-
-        // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
-        List<StepRecord> newRecord = stepDao.getRecordsNewerThan(lastRecordTimestampMillisecond);
-        String newRecordJson =  mapper.writeValueAsString(newRecord);
-
-        rewardDao.updateServerTags(syncRewardsId, syncRewardsServerTag);
-
-        List<Reward>  rewards = rewardDao.getUnSyncRewards();
-        String unSyncRewards = mapper.writeValueAsString(rewards);
-
-        Status status = statusDao.getStatus();
-        String statusJson = mapper.writeValueAsString(status);
-        String username = profileDao.getUsername();
-        return new String[]{
-            username, newRecordJson, unSyncRewards, statusJson
-        };
-    }
-
-    @SuppressWarnings("unused")
-    public String[] syncServer()
-            throws JsonProcessingException {
-
-        // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
-        List<StepRecord> newRecord = stepDao.getAll();
-        String newRecordJson =  mapper.writeValueAsString(newRecord);
-
-        List<Reward>  rewards = rewardDao.getUnSyncRewards();
-        String unSyncRewards = mapper.writeValueAsString(rewards);
-
-        Status status = statusDao.getStatus();
-        String statusJson = mapper.writeValueAsString(status);
-
-        String username = profileDao.getUsername();
-        return new String[]{
-                username, newRecordJson, unSyncRewards, statusJson
-        };
-    }
-
-    @SuppressWarnings("unused")
     public String getStatus(String userAction) throws JsonProcessingException {
 
         if (Objects.equals(userAction, CASH_OUT)) {
@@ -202,30 +154,32 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         long midnightTs = new DateTime(tsNow, DateTimeZone.getDefault()).withTimeAtStartOfDay().getMillis();
         boolean rewardWasYesterdayOrBefore = reward.ts < midnightTs;
-
         boolean experiment_started = tsNow >= tsExpBegins;
         boolean experiment_ended = tsNow >= tsExpEnds;
 
         // Make "accessible" only today's rewards
         rewardDao.updateAccessibleAccordingToDay(tsNow);
 
-        // TODO: remember specific case while changing of day
-        //  when waiting user to cash out
-
         switch (status.state) {
             case EXPERIMENT_NOT_STARTED:
-                if (tsNow >= tsExpEnds) {
+                if (experiment_ended) {
                     // The user miss all the experience
                     // We don't really expect that to happen
                     status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                 }
-                else if (tsNow >= tsExpBegins) {
+                else if (experiment_started) {
                     status.state = EXPERIMENT_JUST_STARTED;
                     List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
                     if (toCashOut.size() > 0) {
                         reward = toCashOut.get(0);
                     } else {
-                        reward = rewardDao.nextPossibleReward().get(0);
+                        List<Reward> possibleRewards = rewardDao.nextPossibleReward();
+                        if (possibleRewards.size() > 0) {
+                            reward = possibleRewards.get(0);
+                        } else {
+                            Log.d(tag, "THIS SHOULD NOT HAPPEN!!!!! Maybe reset the server?");
+                        }
+
                     }
                 } else {
                     // User still needs to wait
@@ -273,11 +227,16 @@ public class MainUnityActivity extends UnityPlayerActivity {
                         status.state = WAITING_FOR_USER_TO_CASH_OUT;
                     } else if (tsNow >= tsExpEnds) {
                         status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
-                    } else if (rewardDao.isLastRewardOfTheDay(reward)) {
-                        status.state = LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
                     } else {
-                        reward = rewardDao.nextPossibleReward().get(0);
-                        status.state = ONGOING_OBJECTIVE;
+                        List<Reward> possibleRewards = rewardDao.nextPossibleReward();
+                        if (possibleRewards.size() > 0) {
+                            reward = possibleRewards.get(0);
+                            status.state = ONGOING_OBJECTIVE;
+                        } else {
+                            // This might never happen - probably can remove it later on
+                            Log.d(tag, "THIS SHOULD NOT HAPPEN!!!!!!!!!!!!");
+                            status.state = LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
+                        }
                     }
                 } else if (rewardDao.rewardsThatNeedCashOut().size() < 1 && tsNow >= tsExpEnds) {
                     status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
@@ -291,7 +250,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
                 if (rewardWasYesterdayOrBefore) {
                     // We change of day
-                    if (tsNow >= tsExpEnds) {
+                    if (experiment_ended) {
                         status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                     } else {
                         reward = rewardDao.nextPossibleReward().get(0);
@@ -305,7 +264,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 if (reward.objectiveReached) {
                     status.state = WAITING_FOR_USER_TO_CASH_OUT;
                 } else if (rewardWasYesterdayOrBefore) {
-                    if (tsNow >= tsExpEnds) {
+                    if (experiment_ended) {
                         status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                     } else {
                         reward = rewardDao.nextPossibleReward().get(0);
@@ -322,7 +281,6 @@ public class MainUnityActivity extends UnityPlayerActivity {
         int steps = stepDao.getStepNumberSinceMidnightThatDay(reward.ts);
         status.stepNumberDay = Math.min(status.dailyObjective, steps);
         status.stepNumberReward = Math.min(reward.objective, steps);
-        status.dailyObjectiveReached = status.stepNumberDay >= status.dailyObjective;
         status = statusDao.setRewardAttributes(status, reward);
 
         statusDao.update(status);
@@ -336,6 +294,56 @@ public class MainUnityActivity extends UnityPlayerActivity {
         boolean val =profileDao.getRowCount() > 0;
         Log.d(tag, "Profile set = "+ val);
         return val;
+    }
+
+    // --------------------------------------
+
+    @SuppressWarnings("unused")
+    public String[] syncServer(
+            long lastRecordTimestampMillisecond,
+            String syncRewardsIdJSON,
+            String syncRewardsServerTagJSON)
+            throws JsonProcessingException {
+        Log.d(tag, "syncRewardsIdJson="+syncRewardsIdJSON);
+        Log.d(tag, "syncRewardsIdJson="+syncRewardsServerTagJSON);
+        List<Integer> syncRewardsId = mapper.readValue(syncRewardsIdJSON, new TypeReference<List<Integer>>() {});
+        List<String> syncRewardsServerTag = mapper.readValue(syncRewardsServerTagJSON, new TypeReference<List<String>>() {});
+
+        // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
+        List<StepRecord> newRecord = stepDao.getRecordsNewerThan(lastRecordTimestampMillisecond);
+        String newRecordJson =  mapper.writeValueAsString(newRecord);
+
+        rewardDao.updateServerTags(syncRewardsId, syncRewardsServerTag);
+
+        List<Reward>  rewards = rewardDao.getUnSyncRewards();
+        String unSyncRewards = mapper.writeValueAsString(rewards);
+
+        Status status = statusDao.getStatus();
+        String statusJson = mapper.writeValueAsString(status);
+        String username = profileDao.getUsername();
+        return new String[]{
+            username, newRecordJson, unSyncRewards, statusJson
+        };
+    }
+
+    @SuppressWarnings("unused")
+    public String[] syncServer()
+            throws JsonProcessingException {
+
+        // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
+        List<StepRecord> newRecord = stepDao.getAll();
+        String newRecordJson =  mapper.writeValueAsString(newRecord);
+
+        List<Reward>  rewards = rewardDao.getUnSyncRewards();
+        String unSyncRewards = mapper.writeValueAsString(rewards);
+
+        Status status = statusDao.getStatus();
+        String statusJson = mapper.writeValueAsString(status);
+
+        String username = profileDao.getUsername();
+        return new String[]{
+                username, newRecordJson, unSyncRewards, statusJson
+        };
     }
 
     // -------------------------------------------------------------------------------------

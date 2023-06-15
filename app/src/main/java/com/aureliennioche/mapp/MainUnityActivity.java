@@ -8,10 +8,12 @@ import static com.aureliennioche.mapp.Status.ONGOING_OBJECTIVE;
 import static com.aureliennioche.mapp.Status.WAITING_FOR_USER_TO_CASH_OUT;
 import static com.aureliennioche.mapp.Status.WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
 
-import android.app.Notification;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.HapticFeedbackConstants;
+import android.view.View;
 
 import androidx.core.app.NotificationManagerCompat;
 
@@ -29,8 +31,9 @@ import java.util.Objects;
 public class MainUnityActivity extends UnityPlayerActivity {
     public static final String tag = "testing";
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static final String CASH_OUT = "cashOut";
-    private static final String REVEAL_NEXT_REWARD = "revealNextReward";
+    private static final String USER_ACTION_CASH_OUT = "cashOut";
+    private static final String USER_ACTION_REVEAL_NEXT_REWARD = "revealNextReward";
+    private static final String USER_ACTION_OPEN_FROM_NOTIFICATION = "openFromNotification";
     public static MainUnityActivity instance = null;  // From "Unity As A Library" demo
     StepDao stepDao;
     RewardDao rewardDao;
@@ -142,11 +145,11 @@ public class MainUnityActivity extends UnityPlayerActivity {
     @SuppressWarnings("unused")
     public String getStatus(String userAction) throws JsonProcessingException {
 
-        if (Objects.equals(userAction, CASH_OUT)) {
+        if (Objects.equals(userAction, USER_ACTION_CASH_OUT)) {
             Log.d(tag, "Just for info: User clicked cashed out");
         }
 
-        else if (Objects.equals(userAction, REVEAL_NEXT_REWARD)) {
+        else if (Objects.equals(userAction, USER_ACTION_REVEAL_NEXT_REWARD)) {
             Log.d(tag, "Just for info: User clicked next reward");
         }
 
@@ -202,17 +205,23 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
             case WAITING_FOR_USER_TO_CASH_OUT:
 
-                if (Objects.equals(userAction, CASH_OUT)) {
+                if (Objects.equals(userAction, USER_ACTION_CASH_OUT)) {
 
                     List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
                     reward = toCashOut.get(0);
                     rewardDao.rewardHasBeenCashedOut(reward.id);
                     status.chestAmount += reward.amount;
+
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        View view = this.getCurrentFocus();
+                        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM);
+                    }
                     Log.d(tag, "User cashed out");
 
                     // Cancel the notification if still there
                     NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);;
-                    notificationManager.cancel(StepService.REWARD_NOTIFICATION_TAG, reward.id);
+                    notificationManager.cancel(reward.id);
 
                     if (toCashOut.size() > 1) {
                         reward = toCashOut.get(1);
@@ -232,7 +241,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
             case EXPERIMENT_JUST_STARTED:
             case WAITING_FOR_USER_TO_REVEAL_NEW_REWARD:
-                if (Objects.equals(userAction, REVEAL_NEXT_REWARD)) {
+                if (Objects.equals(userAction, USER_ACTION_REVEAL_NEXT_REWARD) || Objects.equals(userAction, USER_ACTION_OPEN_FROM_NOTIFICATION)) {
                     List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
                     Log.d(tag, "user wants to reveal a new reward");
                     if (toCashOut.size() > 0) {
@@ -416,9 +425,14 @@ public class MainUnityActivity extends UnityPlayerActivity {
 ////        Log.d(tag, intent.getAction());
 ////        Log.d(tag, String.valueOf(intent.getExtras()));
 //
-//        if (intent.getExtras().containsKey("LAUNCHED_FROM_NOTIFICATION")) {
-//            Log.d(tag, "Intent: val "+ intent.getExtras().getInt("LAUNCHED_FROM_NOTIFICATION"));
-//        }
+        if (intent.getExtras().containsKey("LAUNCHED_FROM_NOTIFICATION")) {
+            Log.d(tag, "Opened from the notification corresponding to the reward id "+ intent.getExtras().getInt("LAUNCHED_FROM_NOTIFICATION"));
+            try {
+                getStatus(USER_ACTION_OPEN_FROM_NOTIFICATION);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         if(intent.getExtras().containsKey("doQuit"))
             if(mUnityPlayer != null) {

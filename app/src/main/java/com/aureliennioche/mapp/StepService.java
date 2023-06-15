@@ -24,11 +24,10 @@ import androidx.core.app.NotificationManagerCompat;
 import java.util.List;
 
 public class StepService extends Service implements SensorEventListener {
-    private static final int ONGOING_NOTIFICATION_ID = 1;
+    private static final int ONGOING_NOTIFICATION_ID = -1;
     private static final String NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID = "NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID";
     private static final String NOTIFICATION_CHANNEL_OBJ_REACHED_ID = "NOTIFICATION_CHANNEL_OBJ_REACHED_ID";
 
-    public static final String REWARD_NOTIFICATION_TAG = "REWARD";
     public static final String tag = "testing";
     // public boolean appVisibleOnScreen;
     SensorManager sensorManager;
@@ -139,8 +138,10 @@ public class StepService extends Service implements SensorEventListener {
         // PendingIntent.FLAG_MUTABLE instead.
         Intent notificationIntent = new Intent(this, MainUnityActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-//        notificationIntent.setAction(Intent.ACTION_SEND);  // DON'T REMOVE. NECESSARY FOR AN OBSCURE REASON
-//        notificationIntent.putExtra("LAUNCHED_FROM_NOTIFICATION", 1);
+
+        // Extra stuff for notifying the activity in case the user clicked on it
+        notificationIntent.setAction(Intent.ACTION_SEND);  // DON'T REMOVE. NECESSARY FOR AN OBSCURE REASON
+        notificationIntent.putExtra("LAUNCHED_FROM_NOTIFICATION", reward.id);
 
         PendingIntent pendingIntent =
                 PendingIntent.getActivity(
@@ -155,6 +156,7 @@ public class StepService extends Service implements SensorEventListener {
                 .setContentText(getText(R.string.notification_objective_reached_message))
                 .setSmallIcon(R.drawable.ic_cup)
                 .setContentIntent(pendingIntent)
+                .setDefaults(Notification.DEFAULT_SOUND)
                 .setAutoCancel(true); // Make this notification automatically dismissed when the user touches it.
         // .setTicker(getText(R.string.ticker_text))
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
@@ -162,7 +164,7 @@ public class StepService extends Service implements SensorEventListener {
         int notificationId = reward.id;
         // notificationId is a unique int for each notification that you must define
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-            notificationManager.notify(REWARD_NOTIFICATION_TAG, notificationId, builder.build());
+            notificationManager.notify(notificationId, builder.build());
         } else {
             Log.d(tag, "notification not authorized");
         }

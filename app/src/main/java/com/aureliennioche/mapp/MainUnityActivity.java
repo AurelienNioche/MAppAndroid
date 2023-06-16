@@ -34,6 +34,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
     private static final String USER_ACTION_CASH_OUT = "cashOut";
     private static final String USER_ACTION_REVEAL_NEXT_REWARD = "revealNextReward";
     private static final String USER_ACTION_OPEN_FROM_NOTIFICATION = "openFromNotification";
+    private static final String USER_ACTION_NONE = "none";
     public static MainUnityActivity instance = null;  // From "Unity As A Library" demo
     StepDao stepDao;
     RewardDao rewardDao;
@@ -142,15 +143,25 @@ public class MainUnityActivity extends UnityPlayerActivity {
         statusDao.insert(s);
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "UnusedReturnValue"})
     public String getStatus(String userAction) throws JsonProcessingException {
 
-        if (Objects.equals(userAction, USER_ACTION_CASH_OUT)) {
-            Log.d(tag, "Just for info: User clicked cashed out");
-        }
-
-        else if (Objects.equals(userAction, USER_ACTION_REVEAL_NEXT_REWARD)) {
-            Log.d(tag, "Just for info: User clicked next reward");
+        switch (userAction) {
+            case USER_ACTION_CASH_OUT:
+                Log.d(tag, "Just for info: User clicked cashed out");
+                break;
+            case USER_ACTION_REVEAL_NEXT_REWARD:
+                Log.d(tag, "Just for info: User clicked next reward");
+                break;
+            case USER_ACTION_NONE:
+                Log.d(tag, "Just for info: No user action");
+                break;
+            case USER_ACTION_OPEN_FROM_NOTIFICATION:
+                Log.d(tag, "Just for info: Open from notification");
+                break;
+            default:
+                Log.d(tag, "User action not recognized!!! This shouldn't happen");
+                break;
         }
 
         Status status = statusDao.getStatus();

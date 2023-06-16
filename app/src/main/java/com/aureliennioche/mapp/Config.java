@@ -15,8 +15,6 @@ public class Config {
     @SuppressWarnings("unused")
     public double loadingViewDelayBeforeNextView = 1.2;
     @SuppressWarnings("unused")
-    public int loginInputFieldMinLength = 6;
-    @SuppressWarnings("unused")
     public String loginInputFieldDefaultUsername = ""; //TODO: Be sure to put it to `""` for production
     @SuppressWarnings("unused")
     public boolean askServerToResetUser=false;  //TODO: Be sure to put it to `false` for production

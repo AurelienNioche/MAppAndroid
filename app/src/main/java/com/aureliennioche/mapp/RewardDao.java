@@ -61,8 +61,11 @@ public interface RewardDao {
     @Query("SELECT * FROM reward WHERE objectiveReached = 1 AND cashedOut = 0 ORDER BY ts, objective")
     List<Reward> rewardsThatNeedCashOut();
 
-    @Query("UPDATE reward SET accessible = 0 WHERE ts < :midnight AND ts >= :tsEndOfDay")
-    void updateAccessibleAccordingToDay(long midnight, long tsEndOfDay);
+    @Query("UPDATE reward SET accessible = 0 WHERE ts < :midnight OR ts >= :tsEndOfDay")
+    void updateAccessibleFalseAccordingToDay(long midnight, long tsEndOfDay);
+
+    @Query("UPDATE reward SET accessible = 1 WHERE ts >= :midnight AND ts < :tsEndOfDay")
+    void updateAccessibleTrueAccordingToDay(long midnight, long tsEndOfDay);
 
     default void updateAccessibleAccordingToDay(long timestamp) {
         DateTime dt = new DateTime(timestamp, DateTimeZone.getDefault());
@@ -70,7 +73,8 @@ public interface RewardDao {
         long midnightTimestamp = midnight.getMillis();
         DateTime nextMidnight = midnight.plusDays(1);
         long tsEndOfDay = nextMidnight.getMillis();
-        updateAccessibleAccordingToDay(midnightTimestamp, tsEndOfDay);
+        updateAccessibleFalseAccordingToDay(midnightTimestamp, tsEndOfDay);
+        updateAccessibleTrueAccordingToDay(midnightTimestamp, tsEndOfDay);
     }
 
     @Query("SELECT * FROM reward WHERE objective = (SELECT MIN(OBJECTIVE) FROM reward WHERE ACCESSIBLE = 1 AND objectiveReached = 0)")

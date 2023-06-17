@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(tag, "MainActivity => Start the MainActivity");
         // Context context = this.getApplicationContext();
 
-        Log.d(tag, "Git hash: " + BuildConfig.VERSION_NAME);
+        checkVersionAndCleanUpIfNecessary();
         // mapp.VERSION_CODE
 
 
@@ -92,11 +92,13 @@ public class MainActivity extends AppCompatActivity {
         checkPermissions();
     }
 
-    private void checkFirstRun() {
+    private void checkVersionAndCleanUpIfNecessary() {
 
         final String PREFS_NAME = "MyPrefsFile";
         final String PREF_VERSION_CODE_KEY = "version_code";
         final String DOESNT_EXIST = "DOESNT_EXIST";
+
+        Log.d(tag, "Git hash: " + BuildConfig.VERSION_NAME);
 
         // Get current version code
         String currentVersionCode = BuildConfig.VERSION_NAME;

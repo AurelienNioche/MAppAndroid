@@ -224,7 +224,8 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 boolean needToMoveOn;
                 if (toCashOut.size() == 0) {
                     Log.d(tag, "THIS SHOULD NOT HAPPEN. I'LL STILL UPDATE TO NEXT STAGE");
-                    needToMoveOn = true;
+                    status.error = "Error! Waiting for cash out but nothing to cash out!";
+                    needToMoveOn = false;
                 } else if (Objects.equals(userAction, USER_ACTION_CASH_OUT)) {
                     Log.d(tag, "User cashed out");
                     reward = toCashOut.get(0);

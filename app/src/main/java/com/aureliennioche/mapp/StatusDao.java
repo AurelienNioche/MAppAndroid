@@ -39,6 +39,7 @@ public interface StatusDao {
         DateTime dt = new DateTime(r.ts, DateTimeZone.getDefault());
         s.rewardId = r.id;
         s.objective = r.objective;
+        s.startingAt = r.startingAt;
         s.amount = r.amount;
         s.dayOfTheWeek = dt.dayOfWeek().getAsText();
         s.dayOfTheMonth = dt.dayOfMonth().getAsText();

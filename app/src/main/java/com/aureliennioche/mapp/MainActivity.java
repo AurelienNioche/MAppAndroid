@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -78,6 +79,9 @@ public class MainActivity extends AppCompatActivity {
         Log.d(tag, "MainActivity => Start the MainActivity");
         // Context context = this.getApplicationContext();
 
+        Log.d(tag, "Git hash: " + BuildConfig.VERSION_NAME);
+        // mapp.VERSION_CODE
+
 
 //        long ts = DateTime.now().getMillis();
 //        DateTime dt = new DateTime(ts, DateTimeZone.getDefault());
@@ -86,6 +90,38 @@ public class MainActivity extends AppCompatActivity {
 //        String month = dt.monthOfYear().getAsText();
 //        Log.d(tag, "date = "+ dayOfTheWeek + dayOfTheMonth + month);
         checkPermissions();
+    }
+
+    private void checkFirstRun() {
+
+        final String PREFS_NAME = "MyPrefsFile";
+        final String PREF_VERSION_CODE_KEY = "version_code";
+        final String DOESNT_EXIST = "DOESNT_EXIST";
+
+        // Get current version code
+        String currentVersionCode = BuildConfig.VERSION_NAME;
+
+        // Get saved version code
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String savedVersionCode = prefs.getString(PREF_VERSION_CODE_KEY, DOESNT_EXIST);
+
+        // Check for first run or upgrade
+        if (currentVersionCode.equals(savedVersionCode)) {
+            Log.d(tag, "Normal run");
+            // This is just a normal run
+            return;
+
+        } else if (savedVersionCode.equals(DOESNT_EXIST)) {
+            Log.d(tag, "Normal run");
+            // TODO This is a new install (or the user cleared the shared preferences)
+
+        } else {
+            Log.d(tag, "Upgrade");
+            // TODO This is an upgrade
+        }
+
+        // Update the shared preferences with the current version code
+        prefs.edit().putString(PREF_VERSION_CODE_KEY, currentVersionCode).apply();
     }
 
 

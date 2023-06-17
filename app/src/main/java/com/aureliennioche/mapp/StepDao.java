@@ -13,6 +13,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 @Dao
@@ -20,10 +21,6 @@ public interface StepDao {
 
     @Ignore
     String tag = "testing";
-    @Ignore
-    public static final int MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES = 6;
-    @Ignore
-    public static final int KEEP_DATA_NO_LONGER_THAN_X_MONTH = 3;
 
     @Query("SELECT * FROM steprecord WHERE ts > :ref ORDER BY ts ASC")
     List<StepRecord> getRecordsNewerThan(long ref);
@@ -68,27 +65,23 @@ public interface StepDao {
         return stepNumber;
     }
 
-    default StepRecord recordNewSensorValue(int sensorValue)
-    {
+    default StepRecord recordNewSensorValue(
+            int sensorValue) {
         Log.d(tag, "recordNewSensorValue => Let's record new stuff");
 
         long timestamp = System.currentTimeMillis();
         long lastBootTimestamp = timestamp - SystemClock.elapsedRealtime();
 
-        DateTime dt = new DateTime(timestamp, DateTimeZone.getDefault());
-        DateTime midnight = dt.withTimeAtStartOfDay();
-        long midnightTimestamp = midnight.getMillis();
+        long dayBegins = new DateTime(timestamp, DateTimeZone.getDefault()).withTimeAtStartOfDay().getMillis();
 
         int stepNumberSinceMidnight = 0; // Default if no recording, or no recording that day
 
         List<StepRecord> records = getLastRecord();
         // If there is some record
-        if (records.size() > 0)
-        {
+        if (records.size() > 0) {
             StepRecord ref = records.get(0);
             // If there is some record /for today/
-            if (ref.ts > midnightTimestamp)
-            {
+            if (ref.ts > dayBegins) {
                 // If phone has been reboot in the between (leave some error margin),
                 // Then take the meter reading as the number of steps done since the last log
                 // So, steps since midnight is step since midnight from last log plus the meter reading
@@ -97,8 +90,7 @@ public interface StepDao {
                 }
                 // If they were no boot, just consider the progression,
                 // and add it to the previous log
-                else
-                {
+                else {
                     stepNumberSinceMidnight = ref.stepMidnight
                             + (sensorValue - ref.stepLastBoot);
                 }
@@ -106,37 +98,33 @@ public interface StepDao {
         }
 
         // Create new record
-        StepRecord rec = new StepRecord(
-                timestamp,
-                lastBootTimestamp,
-                sensorValue,
-                stepNumberSinceMidnight
-        );
+        StepRecord rec = new StepRecord();
+        rec.ts = timestamp;
+        rec.tsLastBoot = lastBootTimestamp;
+        rec.stepLastBoot = sensorValue;
+        rec.stepMidnight = stepNumberSinceMidnight;
 
         // Record new entry
         insert(rec);
 
         // Delete
-        long bound = midnight.minusMonths(KEEP_DATA_NO_LONGER_THAN_X_MONTH).getMillis();
+        long bound = dayBegins - TimeUnit.DAYS.toMillis(ConfigAndroid.keepDataNoLongerThanXdays);
         deleteRecordsOlderThan(bound);
 
         // Delete older ones within a 6 min range (we assume we don't need data more than every 6 minutes)
-        long lowerBound = midnight.minusMinutes(MIN_DELAY_BETWEEN_TWO_RECORDS_MINUTES).getMillis();
-        lowerBound = Math.max(midnightTimestamp, lowerBound); // Bound the bound to midnight that dat
+        long lowerBound = dayBegins - TimeUnit.MINUTES.toMillis(ConfigAndroid.minDelayBetweenTwoRecords);
+        lowerBound = Math.max(dayBegins, lowerBound); // Bound the bound to midnight that day
         deleteRecordsOnInterval(lowerBound, timestamp); // Upper bound is the timestamp of that recording
 
         return rec;
     }
 
-//    @Query("SELECT * FROM steprecord ORDER BY ts ASC")
-//    List<StepRecord> getAll();
-//
-    @Query("DELETE FROM steprecord")
-    void nukeTable();
-
-    @Query("SELECT COUNT(id) FROM steprecord")
-    int getRowCount();
-
     @Query("SELECT * FROM steprecord")
     List<StepRecord> getAll();
+
+//    @Query("DELETE FROM steprecord")
+//    void nukeTable();
+//
+//    @Query("SELECT COUNT(id) FROM steprecord")
+//    int getRowCount();
 }

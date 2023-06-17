@@ -11,6 +11,7 @@ import org.joda.time.DateTimeZone;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 
 @Dao
@@ -27,9 +28,6 @@ public interface RewardDao {
 
     @Query("SELECT * FROM reward ORDER BY ts, objective LIMIT 1")
     Reward getFirstReward();
-
-    @Query("SELECT COUNT(id) FROM reward")
-    int getRowCount();
 
     @Query("SELECT * FROM reward WHERE serverTag != localTag")
     List<Reward> getUnSyncRewards();
@@ -52,33 +50,23 @@ public interface RewardDao {
         return uuid.toString();
     }
 
-    @Query("SELECT * FROM reward WHERE accessible = 1 ORDER BY ts, objective")
-    List<Reward> accessibleRewards();
+    @Query("SELECT * FROM reward WHERE ts >= :dayBegins AND ts < :dayEnds ORDER BY ts, objective")
+    List<Reward> accessibleRewards(long dayBegins, long dayEnds);
 
-    @Query("SELECT * FROM reward WHERE accessible = 1 AND objectiveReached = 0 AND objective <= :stepNumber ORDER BY objective")
-    List<Reward> notFlaggedObjectiveReachedRewards(int stepNumber);
+    @Query("SELECT * FROM reward WHERE ts >= :dayBegins AND ts < :dayEnds AND objectiveReached = 0 AND objective <= :stepNumber ORDER BY objective")
+    List<Reward> notFlaggedObjectiveReachedRewards(int stepNumber, long dayBegins, long dayEnds);
+
+    default List<Reward> notFlaggedObjectiveReachedRewards(StepRecord step) {
+        long dayBegins = new DateTime(step.ts, DateTimeZone.getDefault()).withTimeAtStartOfDay().getMillis();
+        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
+        return notFlaggedObjectiveReachedRewards(step.stepMidnight, dayBegins, dayEnds);
+    }
 
     @Query("SELECT * FROM reward WHERE objectiveReached = 1 AND cashedOut = 0 ORDER BY ts, objective")
     List<Reward> rewardsThatNeedCashOut();
 
-    @Query("UPDATE reward SET accessible = 0 WHERE ts < :midnight OR ts >= :tsEndOfDay")
-    void updateAccessibleFalseAccordingToDay(long midnight, long tsEndOfDay);
-
-    @Query("UPDATE reward SET accessible = 1 WHERE ts >= :midnight AND ts < :tsEndOfDay")
-    void updateAccessibleTrueAccordingToDay(long midnight, long tsEndOfDay);
-
-    default void updateAccessibleAccordingToDay(long timestamp) {
-        DateTime dt = new DateTime(timestamp, DateTimeZone.getDefault());
-        DateTime midnight = dt.withTimeAtStartOfDay();
-        long midnightTimestamp = midnight.getMillis();
-        DateTime nextMidnight = midnight.plusDays(1);
-        long tsEndOfDay = nextMidnight.getMillis();
-        updateAccessibleFalseAccordingToDay(midnightTimestamp, tsEndOfDay);
-        updateAccessibleTrueAccordingToDay(midnightTimestamp, tsEndOfDay);
-    }
-
-    @Query("SELECT * FROM reward WHERE objective = (SELECT MIN(OBJECTIVE) FROM reward WHERE ACCESSIBLE = 1 AND objectiveReached = 0)")
-    List<Reward> nextPossibleReward();
+    @Query("SELECT * FROM reward WHERE objective = (SELECT MIN(OBJECTIVE) FROM reward WHERE objectiveReached = 0 AND ts >= :dayBegins AND ts < :dayEnds)")
+    List<Reward> nextPossibleReward(long dayBegins, long dayEnds);
 
     @Query("UPDATE reward SET cashedOut = 1, cashedOutTs = :ts, localTag = :uuid WHERE id = :rewardId")
     void rewardHasBeenCashedOut(int rewardId, long ts, String uuid);
@@ -91,15 +79,17 @@ public interface RewardDao {
     @Query("UPDATE reward SET objectiveReached = 1, objectiveReachedTs = :ts, localTag = :uuid WHERE id = :rewardId")
     void rewardObjectiveHasBeenReached(int rewardId, long ts, String uuid);
 
-    default void rewardObjectiveHasBeenReached(int rewardId, long ts) {
-        rewardObjectiveHasBeenReached(rewardId, ts, generateStringTag());
+    default void rewardObjectiveHasBeenReached(Reward reward, StepRecord step) {
+        rewardObjectiveHasBeenReached(reward.id, step.ts, generateStringTag());
     };
 
-    @Query("SELECT COUNT(id) FROM reward WHERE accessible = 1 AND objective > :refObjective")
-    int countAccessibleRewardWithHigherObjective(int refObjective);
+    @Query("SELECT COUNT(id) FROM reward WHERE ts >= :dayBegins AND ts < :dayEnds AND objective > :refObjective")
+    int countAccessibleRewardWithHigherObjective(int refObjective, long dayBegins, long dayEnds);
 
     default boolean isLastRewardOfTheDay(Reward reward) {
-        return countAccessibleRewardWithHigherObjective(reward.objective) == 0;
+        long dayBegins = new DateTime(reward.ts, DateTimeZone.getDefault()).withTimeAtStartOfDay().getMillis();
+        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
+        return countAccessibleRewardWithHigherObjective(reward.objective, dayBegins, dayEnds) == 0;
     }
 
     @Query("DELETE FROM reward")
@@ -124,4 +114,7 @@ public interface RewardDao {
         DateTime nextMidnight = midnight.plusDays(1);
         return nextMidnight.getMillis();
     }
+
+//    @Query("SELECT COUNT(id) FROM reward")
+//    int getRowCount();
 }

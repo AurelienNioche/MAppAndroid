@@ -38,13 +38,16 @@ public class Status {
     @ColumnInfo
     public String month = "month";
     @ColumnInfo
-    public int stepNumberDay = -1;
-    @ColumnInfo
-    public int stepNumberReward = -1;
+    public int stepNumber = -1;
     @ColumnInfo
     public int rewardId = -1;
     @ColumnInfo
     public int objective = -1;
     @ColumnInfo
+    public int startingAt = -1;
+    @ColumnInfo
     public double amount = -1;
+
+    @ColumnInfo
+    public String error = "";
 }

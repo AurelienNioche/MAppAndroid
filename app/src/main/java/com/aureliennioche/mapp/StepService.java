@@ -154,7 +154,7 @@ public class StepService extends Service implements SensorEventListener {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_OBJ_REACHED_ID)
                 .setContentTitle(title)
                 .setContentText(getText(R.string.notification_objective_reached_message))
-                .setSmallIcon(R.drawable.ic_cup)
+                .setSmallIcon(R.drawable.ic_cashout)
                 .setContentIntent(pendingIntent)
                 .setDefaults(Notification.DEFAULT_SOUND)
                 .setAutoCancel(true); // Make this notification automatically dismissed when the user touches it.
@@ -194,17 +194,14 @@ public class StepService extends Service implements SensorEventListener {
 
     void checkIfObjectiveIsReached(StepRecord rec) {
 
-        // Make inaccessible the rewards older than that day
-        rewardDao.updateAccessibleAccordingToDay(rec.ts);
+        List<Reward> rewards = rewardDao.notFlaggedObjectiveReachedRewards(rec);
 
-        List<Reward> rewards = rewardDao.notFlaggedObjectiveReachedRewards(rec.stepMidnight);
-
-        for (Reward rwd: rewards){
+        for (Reward rwd: rewards) {
 
             Log.d(tag, "objective reached");
 
             // Update reward's 'objectiveReached' flag
-            rewardDao.rewardObjectiveHasBeenReached(rwd.id, rec.ts);
+            rewardDao.rewardObjectiveHasBeenReached(rwd, rec);
 
             // Send notification
             sendNotificationObjectiveReached(rwd);

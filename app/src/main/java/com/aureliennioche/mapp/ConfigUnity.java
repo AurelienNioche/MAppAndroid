@@ -1,6 +1,6 @@
 package com.aureliennioche.mapp;
 
-public class Config {
+public class ConfigUnity {
     @SuppressWarnings("unused")
     // Macbook pro at home: "ws://192.168.0.101:8000/ws"
     // Uni: "wss://samoa.dcs.gla.ac.uk/mapp/ws"

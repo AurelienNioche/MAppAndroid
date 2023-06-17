@@ -14,12 +14,11 @@ public class Reward {
 
     @ColumnInfo()
     public int objective;
+    @ColumnInfo
+    public int startingAt;
 
     @ColumnInfo()
     public double amount;
-
-    @ColumnInfo() //  Number of step since midnight (not hyper duper precise)
-    public boolean accessible;
 
     @ColumnInfo()
     public boolean objectiveReached;

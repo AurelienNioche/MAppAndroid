@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "8f29aa7d41318fbe97a2d0eb2eb83f89",
+    "identityHash": "69a02d0bf528186baf269af3a63ee0c2",
     "entities": [
       {
         "tableName": "Reward",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ts` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `amount` REAL NOT NULL, `accessible` INTEGER NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `serverTag` TEXT, `localTag` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ts` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `startingAt` INTEGER NOT NULL, `amount` REAL NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `serverTag` TEXT, `localTag` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -27,15 +27,15 @@
             "notNull": true
           },
           {
-            "fieldPath": "amount",
-            "columnName": "amount",
-            "affinity": "REAL",
+            "fieldPath": "startingAt",
+            "columnName": "startingAt",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "accessible",
-            "columnName": "accessible",
-            "affinity": "INTEGER",
+            "fieldPath": "amount",
+            "columnName": "amount",
+            "affinity": "REAL",
             "notNull": true
           },
           {
@@ -88,7 +88,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8f29aa7d41318fbe97a2d0eb2eb83f89')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '69a02d0bf528186baf269af3a63ee0c2')"
     ]
   }
 }

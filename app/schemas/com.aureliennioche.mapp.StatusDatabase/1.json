@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "9934974950de45b262fb2622088046dd",
+    "identityHash": "a407e281a4cbdc067f872a169bd08487",
     "entities": [
       {
         "tableName": "Status",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `state` TEXT, `dailyObjective` INTEGER NOT NULL, `chestAmount` REAL NOT NULL, `dayOfTheWeek` TEXT, `dayOfTheMonth` TEXT, `month` TEXT, `stepNumberDay` INTEGER NOT NULL, `stepNumberReward` INTEGER NOT NULL, `rewardId` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `amount` REAL NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `state` TEXT, `dailyObjective` INTEGER NOT NULL, `chestAmount` REAL NOT NULL, `dayOfTheWeek` TEXT, `dayOfTheMonth` TEXT, `month` TEXT, `stepNumber` INTEGER NOT NULL, `rewardId` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `startingAt` INTEGER NOT NULL, `amount` REAL NOT NULL, `error` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -51,14 +51,8 @@
             "notNull": false
           },
           {
-            "fieldPath": "stepNumberDay",
-            "columnName": "stepNumberDay",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "stepNumberReward",
-            "columnName": "stepNumberReward",
+            "fieldPath": "stepNumber",
+            "columnName": "stepNumber",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -75,10 +69,22 @@
             "notNull": true
           },
           {
+            "fieldPath": "startingAt",
+            "columnName": "startingAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
             "fieldPath": "amount",
             "columnName": "amount",
             "affinity": "REAL",
             "notNull": true
+          },
+          {
+            "fieldPath": "error",
+            "columnName": "error",
+            "affinity": "TEXT",
+            "notNull": false
           }
         ],
         "primaryKey": {
@@ -94,7 +100,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9934974950de45b262fb2622088046dd')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a407e281a4cbdc067f872a169bd08487')"
     ]
   }
 }

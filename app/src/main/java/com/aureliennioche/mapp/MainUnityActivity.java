@@ -27,6 +27,7 @@ import org.joda.time.DateTimeZone;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public class MainUnityActivity extends UnityPlayerActivity {
     public static final String tag = "testing";
@@ -96,9 +97,9 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
     @SuppressWarnings("unused")
     public String getConfig() throws JsonProcessingException {
-        Config config = new Config();
-        Log.d(tag, mapper.writeValueAsString(config));
-        return mapper.writeValueAsString(config);
+        ConfigUnity configUnity = new ConfigUnity();
+        Log.d(tag, mapper.writeValueAsString(configUnity));
+        return mapper.writeValueAsString(configUnity);
     }
 
     @SuppressWarnings("unused")
@@ -109,10 +110,14 @@ public class MainUnityActivity extends UnityPlayerActivity {
             String rewardList
     ) throws JsonProcessingException {
 
+        Status s = new Status();
+
         // Set up profile
         if (profileDao.getRowCount() > 0) {
             Log.d(tag, "THIS SHOULD NOT HAPPEN");
+            s.error = "Profile already exists";
         }
+
         Profile p = new Profile();
         p.username = username;
         profileDao.insert(p);
@@ -128,16 +133,13 @@ public class MainUnityActivity extends UnityPlayerActivity {
         Log.d(tag, "rewards saved:");
         rewardDao.getAll().forEach(item -> Log.d(tag, "reward id"+item.id));
 
-        Reward reward = rewardDao.getFirstReward();
+        Reward r = rewardDao.getFirstReward();
 
-        Status s = new Status();
         s.state = EXPERIMENT_NOT_STARTED;
         s.chestAmount = chestAmount;
         s.dailyObjective = dailyObjective;
-        s = statusDao.setRewardAttributes(s, reward);
-        int steps = stepDao.getStepNumberSinceMidnightThatDay(reward.ts);
-        s.stepNumberDay = Math.min(s.dailyObjective, steps);
-        s.stepNumberReward = Math.min(reward.objective, steps);
+        s = statusDao.setRewardAttributes(s, r);
+        s.stepNumber = stepDao.getStepNumberSinceMidnightThatDay(r.ts);
 
         Log.d(tag, "Status at the INITIALIZATION " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
         statusDao.insert(s);
@@ -145,7 +147,12 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
     @SuppressWarnings({"unused", "UnusedReturnValue"})
     public String getStatus(String userAction) throws JsonProcessingException {
+        Status status = statusDao.getStatus();
 
+        if (!Objects.equals(status.error, "")) {
+            Log.d(tag, "There is an error, I won't change anything");
+            return mapper.writeValueAsString(status);
+        }
         switch (userAction) {
             case USER_ACTION_CASH_OUT:
                 Log.d(tag, "Just for info: User clicked cashed out");
@@ -164,7 +171,6 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 break;
         }
 
-        Status status = statusDao.getStatus();
         Reward reward = rewardDao.getReward(status.rewardId);
 
         Log.d(tag, "Status BEFORE updating " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
@@ -174,35 +180,33 @@ public class MainUnityActivity extends UnityPlayerActivity {
         long tsExpBegins = rewardDao.getTsExpBegins();
         long tsExpEnds = rewardDao.getTsExpEnds();
         long tsNow = System.currentTimeMillis();
+        long dayBegins = new DateTime(tsNow, DateTimeZone.getDefault()).withTimeAtStartOfDay().getMillis();
+        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
 
-        long midnightTs = new DateTime(tsNow, DateTimeZone.getDefault()).withTimeAtStartOfDay().getMillis();
-        boolean rewardWasYesterdayOrBefore = reward.ts < midnightTs;
-        boolean experiment_started = tsNow >= tsExpBegins;
-        boolean experiment_ended = tsNow >= tsExpEnds;
-
-        // Make "accessible" only today's rewards
-        rewardDao.updateAccessibleAccordingToDay(tsNow);
+        boolean rewardWasYesterdayOrBefore = reward.ts < dayBegins;
+        boolean experimentStarted = tsNow >= tsExpBegins;
+        boolean experimentEnded = tsNow >= tsExpEnds;
 
         switch (status.state) {
             case EXPERIMENT_NOT_STARTED:
-                if (experiment_ended) {
+                if (experimentEnded) {
                     // The user miss all the experience
                     // We don't really expect that to happen
                     status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                 }
-                else if (experiment_started) {
+                else if (experimentStarted) {
                     status.state = EXPERIMENT_JUST_STARTED;
                     List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
                     if (toCashOut.size() > 0) {
                         reward = toCashOut.get(0);
                     } else {
-                        List<Reward> possibleRewards = rewardDao.nextPossibleReward();
+                        List<Reward> possibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
                         if (possibleRewards.size() > 0) {
                             reward = possibleRewards.get(0);
                         } else {
                             Log.d(tag, "THIS SHOULD NOT HAPPEN!!!!! Maybe reset the server?");
+                            status.error = "Error! I couldn't find the reward to show!";
                         }
-
                     }
                 } else {
                     // User still needs to wait
@@ -216,44 +220,54 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
             case WAITING_FOR_USER_TO_CASH_OUT:
 
-                if (Objects.equals(userAction, USER_ACTION_CASH_OUT)) {
-
-                    List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
+                List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
+                boolean needToMoveOn;
+                if (toCashOut.size() == 0) {
+                    Log.d(tag, "THIS SHOULD NOT HAPPEN. I'LL STILL UPDATE TO NEXT STAGE");
+                    needToMoveOn = true;
+                } else if (Objects.equals(userAction, USER_ACTION_CASH_OUT)) {
+                    Log.d(tag, "User cashed out");
                     reward = toCashOut.get(0);
                     rewardDao.rewardHasBeenCashedOut(reward.id);
                     status.chestAmount += reward.amount;
-
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         View view = this.getCurrentFocus();
                         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM);
                     }
-                    Log.d(tag, "User cashed out");
 
                     // Cancel the notification if still there
-                    NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);;
+                    NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
                     notificationManager.cancel(reward.id);
-
-                    if (toCashOut.size() > 1) {
-                        reward = toCashOut.get(1);
-                        status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
-                    } else if (tsNow >= tsExpEnds) {
-                        status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
-                    } else if (rewardDao.isLastRewardOfTheDay(reward)) {
-                        status.state = LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
-                    } else {
-                        reward = rewardDao.nextPossibleReward().get(0);
-                        status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
-                    }
+                    needToMoveOn = true;
                 } else {
                     Log.d(tag, "Waiting for user to cash out");
+                    needToMoveOn = false;
+                }
+
+                if (needToMoveOn) {
+                    toCashOut = rewardDao.rewardsThatNeedCashOut();
+                    if (toCashOut.size() > 0) {
+                        reward = toCashOut.get(0);
+                        status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                    } else if (experimentEnded) {
+                        status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+                    } else {
+                        List<Reward> possibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
+                        if (possibleRewards.size() > 0) {
+                            reward = possibleRewards.get(0);
+                            status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                        } else {
+                            status.state = LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
+                        }
+                    }
                 }
                 break;
 
             case EXPERIMENT_JUST_STARTED:
             case WAITING_FOR_USER_TO_REVEAL_NEW_REWARD:
                 if (Objects.equals(userAction, USER_ACTION_REVEAL_NEXT_REWARD) || Objects.equals(userAction, USER_ACTION_OPEN_FROM_NOTIFICATION)) {
-                    List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
+                    toCashOut = rewardDao.rewardsThatNeedCashOut();
                     Log.d(tag, "user wants to reveal a new reward");
                     if (toCashOut.size() > 0) {
                         reward = toCashOut.get(0);
@@ -261,17 +275,18 @@ public class MainUnityActivity extends UnityPlayerActivity {
                     } else if (tsNow >= tsExpEnds) {
                         status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                     } else {
-                        List<Reward> possibleRewards = rewardDao.nextPossibleReward();
+                        List<Reward> possibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
                         if (possibleRewards.size() > 0) {
                             reward = possibleRewards.get(0);
                             status.state = ONGOING_OBJECTIVE;
                         } else {
                             // This might never happen - probably can remove it later on
-                            Log.d(tag, "THIS SHOULD NOT HAPPEN!!!!!!!!!!!!");
-                            status.state = LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
+                            Log.d(tag, "THIS SHOULD NOT HAPPEN!");
+                            // status.state = LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
+                            status.error = "Error! No newer reward found!";
                         }
                     }
-                } else if (rewardDao.rewardsThatNeedCashOut().size() < 1 && tsNow >= tsExpEnds) {
+                } else if (rewardDao.rewardsThatNeedCashOut().size() == 0 && experimentEnded) {
                     status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                 } else {
                     Log.d(tag, "Waiting for user to reveal new reward");
@@ -283,11 +298,16 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
                 if (rewardWasYesterdayOrBefore) {
                     // We change of day
-                    if (experiment_ended) {
+                    if (experimentEnded) {
                         status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                     } else {
-                        reward = rewardDao.nextPossibleReward().get(0);
-                        status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                        List<Reward> nextPossibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
+                        if (nextPossibleRewards.size() > 0) {
+                            reward = nextPossibleRewards.get(0);
+                            status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                        } else {
+                            status.error = "Error! I didn't find any reward to reveal!";
+                        }
                     }
                 }
                 break;
@@ -297,23 +317,27 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 if (reward.objectiveReached) {
                     status.state = WAITING_FOR_USER_TO_CASH_OUT;
                 } else if (rewardWasYesterdayOrBefore) {
-                    if (experiment_ended) {
+                    if (experimentEnded) {
                         status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                     } else {
-                        reward = rewardDao.nextPossibleReward().get(0);
-                        status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                        List<Reward> nextPossibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
+                        if (nextPossibleRewards.size() > 0) {
+                            reward = nextPossibleRewards.get(0);
+                            status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                        } else {
+                            status.error = "Error! The day changed but I didn't find any reward to reveal!";
+                        }
                     }
                 }
                 break;
 
             default:
                 Log.d(tag, "Case not handled");
+                status.error = "I encountered an error!";
                 break;
         }
 
-        int steps = stepDao.getStepNumberSinceMidnightThatDay(reward.ts);
-        status.stepNumberDay = Math.min(status.dailyObjective, steps);
-        status.stepNumberReward = Math.min(reward.objective, steps);
+        status.stepNumber = stepDao.getStepNumberSinceMidnightThatDay(reward.ts);
         status = statusDao.setRewardAttributes(status, reward);
 
         statusDao.update(status);

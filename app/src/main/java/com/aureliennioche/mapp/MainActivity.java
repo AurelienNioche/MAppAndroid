@@ -107,17 +107,28 @@ public class MainActivity extends AppCompatActivity {
 
         // Check for first run or upgrade
         if (currentVersionCode.equals(savedVersionCode)) {
-            Log.d(tag, "Normal run");
+            Log.d(tag, "App already installed before");
             // This is just a normal run
             return;
 
         } else if (savedVersionCode.equals(DOESNT_EXIST)) {
-            Log.d(tag, "Normal run");
-            // TODO This is a new install (or the user cleared the shared preferences)
+            // This is a new install (or the user cleared the shared preferences)
+            Log.d(tag, "New install");
 
         } else {
             Log.d(tag, "Upgrade");
-            // TODO This is an upgrade
+        }
+
+        if (ConfigAndroid.eraseTablesAfterInstall) {
+            Log.d(tag, "Deleting previously existing tables");
+            StepDao stepDao = StepDatabase.getInstance(this.getApplicationContext()).stepDao();
+            RewardDao rewardDao = RewardDatabase.getInstance(this.getApplicationContext()).rewardDao();
+            ProfileDao profileDao = ProfileDatabase.getInstance(this.getApplicationContext()).profileDao();
+            StatusDao statusDao = StatusDatabase.getInstance(this.getApplicationContext()).statusDao();
+            stepDao.nukeTable();
+            rewardDao.nukeTable();
+            profileDao.nukeTable();
+            statusDao.nukeTable();
         }
 
         // Update the shared preferences with the current version code

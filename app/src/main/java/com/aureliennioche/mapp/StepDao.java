@@ -122,9 +122,6 @@ public interface StepDao {
     @Query("SELECT * FROM steprecord")
     List<StepRecord> getAll();
 
-//    @Query("DELETE FROM steprecord")
-//    void nukeTable();
-//
-//    @Query("SELECT COUNT(id) FROM steprecord")
-//    int getRowCount();
+    @Query("DELETE FROM steprecord")
+    void nukeTable();
 }

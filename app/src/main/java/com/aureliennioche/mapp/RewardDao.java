@@ -50,9 +50,6 @@ public interface RewardDao {
         return uuid.toString();
     }
 
-    @Query("SELECT * FROM reward WHERE ts >= :dayBegins AND ts < :dayEnds ORDER BY ts, objective")
-    List<Reward> accessibleRewards(long dayBegins, long dayEnds);
-
     @Query("SELECT * FROM reward WHERE ts >= :dayBegins AND ts < :dayEnds AND objectiveReached = 0 AND objective <= :stepNumber ORDER BY objective")
     List<Reward> notFlaggedObjectiveReachedRewards(int stepNumber, long dayBegins, long dayEnds);
 
@@ -65,7 +62,7 @@ public interface RewardDao {
     @Query("SELECT * FROM reward WHERE objectiveReached = 1 AND cashedOut = 0 ORDER BY ts, objective")
     List<Reward> rewardsThatNeedCashOut();
 
-    @Query("SELECT * FROM reward WHERE objective = (SELECT MIN(OBJECTIVE) FROM reward WHERE objectiveReached = 0 AND ts >= :dayBegins AND ts < :dayEnds)")
+    @Query("SELECT * FROM reward WHERE objectiveReached = 0 AND ts >= :dayBegins AND ts < :dayEnds ORDER BY objective")
     List<Reward> nextPossibleReward(long dayBegins, long dayEnds);
 
     @Query("UPDATE reward SET cashedOut = 1, cashedOutTs = :ts, localTag = :uuid WHERE id = :rewardId")

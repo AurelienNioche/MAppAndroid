@@ -17,7 +17,7 @@ public class ConfigUnity {
     @SuppressWarnings("unused")
     public double loadingViewDelayBeforeNextView = 0.5;
     @SuppressWarnings("unused")
-    public String loginInputFieldDefaultUsername = ""; //TODO: Be sure to put it to `""` for production
+    public String loginInputFieldDefaultUsername = "123test"; //TODO: Be sure to put it to `""` for production
     @SuppressWarnings("unused")
     public boolean askServerToResetUser = false;  //TODO: Be sure to put it to `false` for production
     @SuppressWarnings("unused")

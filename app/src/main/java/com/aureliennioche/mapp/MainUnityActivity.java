@@ -287,8 +287,22 @@ public class MainUnityActivity extends UnityPlayerActivity {
                             status.error = "Error! No newer reward found!";
                         }
                     }
-                } else if (rewardDao.rewardsThatNeedCashOut().size() == 0 && experimentEnded) {
-                    status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+                } else if (rewardDao.rewardsThatNeedCashOut().size() == 0) {
+                    if (experimentEnded) {
+                        status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+                    } else if (rewardWasYesterdayOrBefore) {
+                        List<Reward> possibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
+                        if (possibleRewards.size() > 0) {
+                            reward = possibleRewards.get(0);
+                        } else {
+                            // This might never happen - probably can remove it later on
+                            Log.d(tag, "THIS SHOULD NOT HAPPEN!");
+                            // status.state = LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
+                            status.error = "Error! No newer reward found!";
+                        }
+                    } else {
+                        Log.d(tag, "Waiting for user to reveal new reward");
+                    }
                 } else {
                     Log.d(tag, "Waiting for user to reveal new reward");
                 }

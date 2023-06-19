@@ -150,10 +150,12 @@ public class StepService extends Service implements SensorEventListener {
                         notificationIntent,
                         PendingIntent.FLAG_IMMUTABLE);
 
-        String title = getString(R.string.notification_objective_reached_title, reward.amount, reward.objective);
+        String title = getString(R.string.notification_objective_reached_title, reward.amount, reward.objective - reward.startingAt);
+        String text = getString(R.string.notification_objective_reached_message, reward.objective);
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_OBJ_REACHED_ID)
                 .setContentTitle(title)
-                .setContentText(getText(R.string.notification_objective_reached_message))
+                .setContentText(text)
                 .setSmallIcon(R.drawable.ic_cashout)
                 .setContentIntent(pendingIntent)
                 .setDefaults(Notification.DEFAULT_SOUND)

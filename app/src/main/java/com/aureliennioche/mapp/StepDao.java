@@ -46,7 +46,7 @@ public interface StepDao {
         // Log.d(tag, "hello");
         // long timestamp = System.currentTimeMillis();
 
-        DateTime dt = new DateTime(timestamp, DateTimeZone.getDefault());
+        DateTime dt = new DateTime(timestamp, MainActivity.tz);
         DateTime midnight = dt.withTimeAtStartOfDay();
         DateTime nextMidnight = midnight.plusDays(1);
 
@@ -72,7 +72,7 @@ public interface StepDao {
         long timestamp = System.currentTimeMillis();
         long lastBootTimestamp = timestamp - SystemClock.elapsedRealtime();
 
-        long dayBegins = new DateTime(timestamp, DateTimeZone.getDefault()).withTimeAtStartOfDay().getMillis();
+        long dayBegins = new DateTime(timestamp, MainActivity.tz).withTimeAtStartOfDay().getMillis();
 
         int stepNumberSinceMidnight = 0; // Default if no recording, or no recording that day
 

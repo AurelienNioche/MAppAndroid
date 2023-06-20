@@ -180,7 +180,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
         long tsExpBegins = rewardDao.getTsExpBegins();
         long tsExpEnds = rewardDao.getTsExpEnds();
         long tsNow = System.currentTimeMillis();
-        long dayBegins = new DateTime(tsNow, DateTimeZone.getDefault()).withTimeAtStartOfDay().getMillis();
+        long dayBegins = new DateTime(tsNow, MainActivity.tz).withTimeAtStartOfDay().getMillis();
         long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
 
         boolean rewardWasYesterdayOrBefore = reward.ts < dayBegins;

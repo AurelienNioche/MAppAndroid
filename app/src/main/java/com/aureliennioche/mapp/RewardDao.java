@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-
 @Dao
 public interface RewardDao {
 
@@ -54,7 +53,7 @@ public interface RewardDao {
     List<Reward> notFlaggedObjectiveReachedRewards(int stepNumber, long dayBegins, long dayEnds);
 
     default List<Reward> notFlaggedObjectiveReachedRewards(StepRecord step) {
-        long dayBegins = new DateTime(step.ts, DateTimeZone.getDefault()).withTimeAtStartOfDay().getMillis();
+        long dayBegins = new DateTime(step.ts, MainActivity.tz).withTimeAtStartOfDay().getMillis();
         long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
         return notFlaggedObjectiveReachedRewards(step.stepMidnight, dayBegins, dayEnds);
     }
@@ -78,15 +77,6 @@ public interface RewardDao {
 
     default void rewardObjectiveHasBeenReached(Reward reward, StepRecord step) {
         rewardObjectiveHasBeenReached(reward.id, step.ts, generateStringTag());
-    };
-
-    @Query("SELECT COUNT(id) FROM reward WHERE ts >= :dayBegins AND ts < :dayEnds AND objective > :refObjective")
-    int countAccessibleRewardWithHigherObjective(int refObjective, long dayBegins, long dayEnds);
-
-    default boolean isLastRewardOfTheDay(Reward reward) {
-        long dayBegins = new DateTime(reward.ts, DateTimeZone.getDefault()).withTimeAtStartOfDay().getMillis();
-        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
-        return countAccessibleRewardWithHigherObjective(reward.objective, dayBegins, dayEnds) == 0;
     }
 
     @Query("DELETE FROM reward")
@@ -100,18 +90,27 @@ public interface RewardDao {
 
     default long getTsExpBegins() {
         long ts = minTs();
-        DateTime dt = new DateTime(ts, DateTimeZone.getDefault());
+        DateTime dt = new DateTime(ts, MainActivity.tz);
         return dt.withTimeAtStartOfDay().getMillis();
     }
 
     default long getTsExpEnds() {
         long ts = maxTs();
-        DateTime dt = new DateTime(ts, DateTimeZone.getDefault());
+        DateTime dt = new DateTime(ts, MainActivity.tz);
         DateTime midnight = dt.withTimeAtStartOfDay();
         DateTime nextMidnight = midnight.plusDays(1);
         return nextMidnight.getMillis();
     }
 
+//    @Query("SELECT COUNT(id) FROM reward WHERE ts >= :dayBegins AND ts < :dayEnds AND objective > :refObjective")
+//    int countAccessibleRewardWithHigherObjective(int refObjective, long dayBegins, long dayEnds);
+
 //    @Query("SELECT COUNT(id) FROM reward")
 //    int getRowCount();
+
+//    default boolean isLastRewardOfTheDay(Reward reward) {
+//        long dayBegins = new DateTime(reward.ts, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+//        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
+//        return countAccessibleRewardWithHigherObjective(reward.objective, dayBegins, dayEnds) == 0;
+//    }
 }

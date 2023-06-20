@@ -1,11 +1,9 @@
 package com.aureliennioche.mapp;
 
 import android.Manifest;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -20,21 +18,16 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
-import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-
-import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
     static final String tag = "testing";  // this.getClass().getSimpleName();
     static StepService stepService;
-
+    static final DateTimeZone tz = DateTimeZone.forID(ConfigAndroid.timezoneId);
     ActivityResultLauncher<Intent> startActivityIntent = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {});
-
-
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.RequestPermission(),
@@ -46,7 +39,6 @@ public class MainActivity extends AppCompatActivity {
                         {
                             finishAndRemoveTask();
                         }});
-
     private final ServiceConnection connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -77,26 +69,17 @@ public class MainActivity extends AppCompatActivity {
         decorView.setSystemUiVisibility(uiOptions);
 
         Log.d(tag, "MainActivity => Start the MainActivity");
-        // Context context = this.getApplicationContext();
+        Log.d(tag, "Timezone " + tz.toString());
 
         checkVersionAndCleanUpIfNecessary();
-        // mapp.VERSION_CODE
-
-
-//        long ts = DateTime.now().getMillis();
-//        DateTime dt = new DateTime(ts, DateTimeZone.getDefault());
-//        String dayOfTheWeek = dt.dayOfWeek().getAsText();
-//        String dayOfTheMonth = dt.dayOfMonth().getAsText();
-//        String month = dt.monthOfYear().getAsText();
-//        Log.d(tag, "date = "+ dayOfTheWeek + dayOfTheMonth + month);
         checkPermissions();
     }
 
     private void checkVersionAndCleanUpIfNecessary() {
 
         final String PREFS_NAME = "MyPrefsFile";
-        final String PREF_VERSION_CODE_KEY = "version_code";
-        final String DOESNT_EXIST = "DOESNT_EXIST";
+        final String PREF_VERSION_NAME_KEY = "version_code";
+        final String DOES_NOT_EXIST = "DOES_NOT_EXIST";
 
         Log.d(tag, "Git hash: " + BuildConfig.VERSION_NAME);
 
@@ -105,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Get saved version code
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String savedVersionCode = prefs.getString(PREF_VERSION_CODE_KEY, DOESNT_EXIST);
+        String savedVersionCode = prefs.getString(PREF_VERSION_NAME_KEY, DOES_NOT_EXIST);
 
         // Check for first run or upgrade
         if (currentVersionCode.equals(savedVersionCode)) {
@@ -113,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
             // This is just a normal run
             return;
 
-        } else if (savedVersionCode.equals(DOESNT_EXIST)) {
+        } else if (savedVersionCode.equals(DOES_NOT_EXIST)) {
             // This is a new install (or the user cleared the shared preferences)
             Log.d(tag, "New install");
 
@@ -134,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Update the shared preferences with the current version code
-        prefs.edit().putString(PREF_VERSION_CODE_KEY, currentVersionCode).apply();
+        prefs.edit().putString(PREF_VERSION_NAME_KEY, currentVersionCode).apply();
     }
 
 

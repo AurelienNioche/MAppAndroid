@@ -9,21 +9,11 @@ import androidx.room.Update;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-
 @Dao
 public interface StatusDao {
 
     @Query("SELECT * FROM status LIMIT 1")
     Status getStatus();
-
-    @Query("SELECT COUNT(id) FROM status")
-    int getRowCount();
-
-    @Query("SELECT dailyObjective FROM status LIMIT 1")
-    int getDailyObjective();
-
-    @Query("SELECT chestAmount FROM status LIMIT 1")
-    double getChestAmount();
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(Status status);
@@ -46,5 +36,4 @@ public interface StatusDao {
         s.month = dt.monthOfYear().getAsText();
         return s;
     }
-
 }

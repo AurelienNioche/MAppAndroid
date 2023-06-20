@@ -10,11 +10,9 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
 
 @Dao
 public interface StepDao {

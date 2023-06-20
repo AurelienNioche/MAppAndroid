@@ -47,7 +47,6 @@ public class Status {
     public int startingAt = -1;
     @ColumnInfo
     public double amount = -1;
-
     @ColumnInfo
     public String error = "";
 }

@@ -9,6 +9,8 @@ import androidx.room.Update;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import java.util.Locale;
+
 @Dao
 public interface StatusDao {
 
@@ -31,9 +33,9 @@ public interface StatusDao {
         s.objective = r.objective;
         s.startingAt = r.startingAt;
         s.amount = r.amount;
-        s.dayOfTheWeek = dt.dayOfWeek().getAsText();
-        s.dayOfTheMonth = dt.dayOfMonth().getAsText();
-        s.month = dt.monthOfYear().getAsText();
+        s.dayOfTheWeek = dt.dayOfWeek().getAsText(Locale.ENGLISH);
+        s.dayOfTheMonth = dt.dayOfMonth().getAsText(Locale.ENGLISH);
+        s.month = dt.monthOfYear().getAsText(Locale.ENGLISH);
         return s;
     }
 }

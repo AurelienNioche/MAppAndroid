@@ -11,30 +11,22 @@ public class Reward {
 
     @ColumnInfo()
     public long ts;  // Unix timestamp in milliseconds
-
     @ColumnInfo()
     public int objective;
     @ColumnInfo
     public int startingAt;
-
     @ColumnInfo()
     public double amount;
-
     @ColumnInfo()
     public boolean objectiveReached;
-
     @ColumnInfo()
     public long objectiveReachedTs;
-
     @ColumnInfo()
     public boolean cashedOut;
-
     @ColumnInfo()
     public long cashedOutTs;
-
     @ColumnInfo()
     public String serverTag;
-
     @ColumnInfo
     public String localTag;
 }

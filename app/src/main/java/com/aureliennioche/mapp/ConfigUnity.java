@@ -13,7 +13,7 @@ public class ConfigUnity {
     @SuppressWarnings("unused")
     public double androidUpdateFrequencySeconds = 1;
     @SuppressWarnings("unused")
-    public double serverUpdateFrequencySeconds = 20;
+    public double serverUpdateFrequencySeconds = 600; // TODO: This should be 600 for production
     @SuppressWarnings("unused")
     public double loadingViewDelayBeforeNextView = 0.5;
     @SuppressWarnings("unused")

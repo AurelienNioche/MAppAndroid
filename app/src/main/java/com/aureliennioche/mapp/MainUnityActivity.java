@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unity3d.player.UnityPlayerActivity;
 
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import java.util.List;
 import java.util.Objects;
@@ -41,6 +40,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
     RewardDao rewardDao;
     ProfileDao profileDao;
     StatusDao statusDao;
+    InteractionDao interactionDao;
 
     // ------------------------------------------------------------------------------------
 
@@ -49,38 +49,16 @@ public class MainUnityActivity extends UnityPlayerActivity {
         super.onCreate(savedInstanceState);
         Log.d(tag, "Creating MainUnityActivity");
 
-        // Interface to the databases
-        stepDao = StepDatabase.getInstance(this.getApplicationContext()).stepDao();
-        rewardDao = RewardDatabase.getInstance(this.getApplicationContext()).rewardDao();
-        profileDao = ProfileDatabase.getInstance(this.getApplicationContext()).profileDao();
-        statusDao = StatusDatabase.getInstance(this.getApplicationContext()).statusDao();
+        // Interfaces to the database
+        MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
+        stepDao = db.stepDao();
+        rewardDao = db.rewardDao();
+        profileDao = db.profileDao();
+        statusDao = db.statusDao();
+        interactionDao = db.interactionDao();
 
-//        // TODO: REMOVE THAT ---------------------
-//        stepDao.nukeTable();
-//        rewardDao.nukeTable();
-//        profileDao.nukeTable();
-//        statusDao.nukeTable();
-//        // ---------------------------------------
-//
-//        Log.d(tag, "count profile = " + profileDao.getRowCount());
-//        Log.d(tag, "count status = " + statusDao.getRowCount());
-//        Log.d(tag, "count reward = " + rewardDao.getRowCount());
-//        Log.d(tag, "count step = " + stepDao.getRowCount());
-
-//        List<Reward> rList = new ArrayList<>();
-//        Reward r = new Reward();
-//        r.id = 34;
-//        rList.add(r);
-//        List<Reward> rewardList;
-//
-//        try {
-//            String json = mapper.writeValueAsString(rList);
-//            rewardList = mapper.readValue(json, new TypeReference<List<Reward>>() {
-//            });
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException(e);
-//        }
-//        rewardDao.insertRewardsIfNotExisting(rewardList);
+        // Record the event
+        interactionDao.newInteraction("onCreate");
 
         // For starting Unity
         Intent intentUnityPlayer = getIntent();
@@ -124,14 +102,13 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         // Set up rewards
         List<Reward> rewards = mapper.readValue(rewardList, new TypeReference<List<Reward>>(){});
-
-        Log.d(tag, "rewards received:");
-        rewards.forEach(item -> Log.d(tag, "reward id"+item.id));
+        String tag =  rewardDao.generateStringTag();
+        rewards.forEach(item -> {item.serverTag = tag; item.localTag = tag;});
 
         rewardDao.insertRewardsIfNotExisting(rewards);
 
         Log.d(tag, "rewards saved:");
-        rewardDao.getAll().forEach(item -> Log.d(tag, "reward id"+item.id));
+        rewardDao.getAll().forEach(item -> Log.d(tag, "reward id " + item.id + "tag " + item.serverTag));
 
         Reward r = rewardDao.getFirstReward();
 
@@ -229,7 +206,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 } else if (Objects.equals(userAction, USER_ACTION_CASH_OUT)) {
                     Log.d(tag, "User cashed out");
                     reward = toCashOut.get(0);
-                    rewardDao.rewardHasBeenCashedOut(reward.id);
+                    rewardDao.rewardHasBeenCashedOut(reward);
                     status.chestAmount += reward.amount;
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -267,18 +244,24 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
             case EXPERIMENT_JUST_STARTED:
             case WAITING_FOR_USER_TO_REVEAL_NEW_REWARD:
-                if (Objects.equals(userAction, USER_ACTION_REVEAL_NEXT_REWARD) || Objects.equals(userAction, USER_ACTION_OPEN_FROM_NOTIFICATION)) {
+                boolean buttonAction = Objects.equals(userAction, USER_ACTION_REVEAL_NEXT_REWARD);
+                boolean notificationTap = Objects.equals(userAction, USER_ACTION_OPEN_FROM_NOTIFICATION);
+                if (buttonAction || notificationTap) {
                     toCashOut = rewardDao.rewardsThatNeedCashOut();
+
                     Log.d(tag, "user wants to reveal a new reward");
                     if (toCashOut.size() > 0) {
                         reward = toCashOut.get(0);
+                        rewardDao.rewardHasBeenRevealed(reward, buttonAction, notificationTap);
                         status.state = WAITING_FOR_USER_TO_CASH_OUT;
-                    } else if (tsNow >= tsExpEnds) {
+
+                    } else if (experimentEnded) {
                         status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                     } else {
                         List<Reward> possibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
                         if (possibleRewards.size() > 0) {
                             reward = possibleRewards.get(0);
+                            rewardDao.rewardHasBeenRevealed(reward, buttonAction, notificationTap);
                             status.state = ONGOING_OBJECTIVE;
                         } else {
                             // This might never happen - probably can remove it later on
@@ -294,6 +277,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
                         List<Reward> possibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
                         if (possibleRewards.size() > 0) {
                             reward = possibleRewards.get(0);
+                            rewardDao.rewardHasBeenRevealed(reward, false, false);
                         } else {
                             // This might never happen - probably can remove it later on
                             Log.d(tag, "THIS SHOULD NOT HAPPEN!");
@@ -373,11 +357,11 @@ public class MainUnityActivity extends UnityPlayerActivity {
     @SuppressWarnings("unused")
     public String[] syncServer(
             long lastRecordTimestampMillisecond,
+            long lastInteractionTimestampMillisecond,
             String syncRewardsIdJSON,
             String syncRewardsServerTagJSON)
             throws JsonProcessingException {
-        Log.d(tag, "syncRewardsIdJson="+syncRewardsIdJSON);
-        Log.d(tag, "syncRewardsIdJson="+syncRewardsServerTagJSON);
+
         List<Integer> syncRewardsId = mapper.readValue(syncRewardsIdJSON, new TypeReference<List<Integer>>() {});
         List<String> syncRewardsServerTag = mapper.readValue(syncRewardsServerTagJSON, new TypeReference<List<String>>() {});
 
@@ -392,9 +376,13 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         Status status = statusDao.getStatus();
         String statusJson = mapper.writeValueAsString(status);
+
+        List<Interaction> newInteractions = interactionDao.getInteractionsNewerThan(lastInteractionTimestampMillisecond);
+        String newInteractionsJson =  mapper.writeValueAsString(newInteractions);
+
         String username = profileDao.getUsername();
         return new String[]{
-            username, newRecordJson, unSyncRewards, statusJson
+            username, newRecordJson, unSyncRewards, statusJson, newInteractionsJson
         };
     }
 
@@ -412,9 +400,12 @@ public class MainUnityActivity extends UnityPlayerActivity {
         Status status = statusDao.getStatus();
         String statusJson = mapper.writeValueAsString(status);
 
+        List<Interaction> newInteractions = interactionDao.getAll();
+        String newInteractionsJson =  mapper.writeValueAsString(newInteractions);
+
         String username = profileDao.getUsername();
         return new String[]{
-                username, newRecordJson, unSyncRewards, statusJson
+                username, newRecordJson, unSyncRewards, statusJson, newInteractionsJson
         };
     }
 
@@ -424,9 +415,12 @@ public class MainUnityActivity extends UnityPlayerActivity {
     protected void onDestroy() {
 
         Log.d(tag, "UnityActivity => on destroy");
-        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
-        intent.putExtra("CALLBACK", "onDestroy");
-        sendBroadcast(intent);
+//        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
+//        intent.putExtra("CALLBACK", "onDestroy");
+//        sendBroadcast(intent);
+
+        // Record
+        interactionDao.newInteraction("onDestroy");
 
         instance = null;
 
@@ -436,18 +430,20 @@ public class MainUnityActivity extends UnityPlayerActivity {
     @Override
     protected void onStop() {
         Log.d(tag, "UnityActivity => on stop");
-//        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
-//        intent.putExtra("CALLBACK", "onStop");
-//        sendBroadcast(intent);
+        Interaction interaction = new Interaction();
+        interaction.ts = System.currentTimeMillis();
+        interaction.event = "onStop";
+        interactionDao.insert(interaction);
+        interactionDao.deleteRecordsTooOld();
         super.onStop();
     }
 
     @Override
     protected void onPause() {
         Log.d(tag, "UnityActivity => on pause");
-//        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
-//        intent.putExtra("CALLBACK", "onPause");
-//        sendBroadcast(intent);
+
+        // Record
+        interactionDao.newInteraction("onPause");
         super.onPause();
     }
 
@@ -456,9 +452,9 @@ public class MainUnityActivity extends UnityPlayerActivity {
         super.onResume();
 
         Log.d(tag, "UnityActivity => on resume");
-//        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
-//        intent.putExtra("CALLBACK", "onResume");
-//        sendBroadcast(intent);
+
+        // Record
+        interactionDao.newInteraction("onResume");
     }
 
     @Override
@@ -471,12 +467,12 @@ public class MainUnityActivity extends UnityPlayerActivity {
     void handleIntent(Intent intent) {
         if(intent == null || intent.getExtras() == null) return;
 
-//        Log.d(tag, "handleIntent");
-////        Log.d(tag, intent.getAction());
-////        Log.d(tag, String.valueOf(intent.getExtras()));
-//
         if (intent.getExtras().containsKey("LAUNCHED_FROM_NOTIFICATION")) {
             Log.d(tag, "Opened from the notification corresponding to the reward id "+ intent.getExtras().getInt("LAUNCHED_FROM_NOTIFICATION"));
+
+            // Record
+            interactionDao.newInteraction("onNotificationTap");
+
             try {
                 getStatus(USER_ACTION_OPEN_FROM_NOTIFICATION);
             } catch (JsonProcessingException e) {

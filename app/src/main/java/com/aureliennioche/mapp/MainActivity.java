@@ -106,14 +106,17 @@ public class MainActivity extends AppCompatActivity {
 
         if (ConfigAndroid.eraseTablesAfterInstall) {
             Log.d(tag, "Deleting previously existing tables");
-            StepDao stepDao = StepDatabase.getInstance(this.getApplicationContext()).stepDao();
-            RewardDao rewardDao = RewardDatabase.getInstance(this.getApplicationContext()).rewardDao();
-            ProfileDao profileDao = ProfileDatabase.getInstance(this.getApplicationContext()).profileDao();
-            StatusDao statusDao = StatusDatabase.getInstance(this.getApplicationContext()).statusDao();
+            MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
+            StepDao stepDao = db.stepDao();
+            RewardDao rewardDao = db.rewardDao();
+            ProfileDao profileDao = db.profileDao();
+            StatusDao statusDao = db.statusDao();
+            InteractionDao interactionDao = db.interactionDao();
             stepDao.nukeTable();
             rewardDao.nukeTable();
             profileDao.nukeTable();
             statusDao.nukeTable();
+            interactionDao.nukeTable();
         }
 
         // Update the shared preferences with the current version code

@@ -47,8 +47,9 @@ public class StepService extends Service implements SensorEventListener {
     @Override
     public void onCreate() {
         Log.d(tag, "onStartCommand => Creating the service");
-        stepDao = StepDatabase.getInstance(this.getApplicationContext()).stepDao();
-        rewardDao = RewardDatabase.getInstance(this.getApplicationContext()).rewardDao();
+        MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
+        stepDao = db.stepDao();
+        rewardDao = db.rewardDao();
     }
 
 

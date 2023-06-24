@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "69a02d0bf528186baf269af3a63ee0c2",
+    "identityHash": "b2b30532d9aeacd025d6528a6cc985f2",
     "entities": [
       {
         "tableName": "Reward",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ts` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `startingAt` INTEGER NOT NULL, `amount` REAL NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `serverTag` TEXT, `localTag` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ts` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `startingAt` INTEGER NOT NULL, `amount` REAL NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `revealedByNotification` INTEGER NOT NULL, `revealedByButton` INTEGER NOT NULL, `revealedTs` INTEGER NOT NULL, `serverTag` TEXT, `localTag` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -63,6 +63,24 @@
             "notNull": true
           },
           {
+            "fieldPath": "revealedByNotification",
+            "columnName": "revealedByNotification",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revealedByButton",
+            "columnName": "revealedByButton",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revealedTs",
+            "columnName": "revealedTs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
             "fieldPath": "serverTag",
             "columnName": "serverTag",
             "affinity": "TEXT",
@@ -88,7 +106,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '69a02d0bf528186baf269af3a63ee0c2')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b2b30532d9aeacd025d6528a6cc985f2')"
     ]
   }
 }

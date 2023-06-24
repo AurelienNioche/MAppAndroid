@@ -4,7 +4,7 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-@Entity
+@Entity(tableName = "step_record")
 public class StepRecord {
     @PrimaryKey(autoGenerate = true)
     public int id;

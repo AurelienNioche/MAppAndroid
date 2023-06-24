@@ -20,29 +20,27 @@ public interface StepDao {
     @Ignore
     String tag = "testing";
 
-    @Query("SELECT * FROM steprecord WHERE ts > :ref ORDER BY ts ASC")
+    @Query("SELECT * FROM step_record WHERE ts > :ref ORDER BY ts ASC")
     List<StepRecord> getRecordsNewerThan(long ref);
 
-    @Query("SELECT * FROM steprecord WHERE ts = (SELECT MAX(ts) FROM steprecord)")
+    @Query("SELECT * FROM step_record WHERE ts = (SELECT MAX(ts) FROM step_record)")
     List<StepRecord> getLastRecord();
 
     // Return a list of zero or one element
-    @Query("SELECT * FROM steprecord WHERE ts = (SELECT MAX(ts) FROM steprecord WHERE ts >= :lowerBound AND ts < :upperBound)")
+    @Query("SELECT * FROM step_record WHERE ts = (SELECT MAX(ts) FROM step_record WHERE ts >= :lowerBound AND ts < :upperBound)")
     List<StepRecord> getLastRecordOnInterval(long lowerBound, long upperBound);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(StepRecord stepRecord);
 
-    @Query("DELETE FROM steprecord WHERE ts >= :lowerBound AND ts < :upperBound " +
+    @Query("DELETE FROM step_record WHERE ts >= :lowerBound AND ts < :upperBound " +
             "AND stepMidnight % 100 != 0")  // We don't want to erase when 100's are reached so, we know when the goal was reached
     void deleteRecordsOnInterval(long lowerBound, long upperBound);
 
-    @Query("DELETE FROM steprecord WHERE ts < :bound")  // We don't want to erase when 100's are reached so, we know when the goal was reached
+    @Query("DELETE FROM step_record WHERE ts < :bound")
     void deleteRecordsOlderThan(long bound);
 
     default int getStepNumberSinceMidnightThatDay(long timestamp) {
-        // Log.d(tag, "hello");
-        // long timestamp = System.currentTimeMillis();
 
         DateTime dt = new DateTime(timestamp, MainActivity.tz);
         DateTime midnight = dt.withTimeAtStartOfDay();
@@ -51,7 +49,6 @@ public interface StepDao {
         long midnightTimestamp = midnight.getMillis();
         long nextMidnightTimestamp = nextMidnight.getMillis();
 
-        // Log.d(tag, "timezone ID:" + dt.getZone().getID());
         List<StepRecord> records = getLastRecordOnInterval(
                 midnightTimestamp,
                 nextMidnightTimestamp);
@@ -59,13 +56,11 @@ public interface StepDao {
         if (records.size() > 0) {
             stepNumber = records.get(0).stepMidnight;
         }
-        // Log.d(tag, "step number: " + stepNumber);
         return stepNumber;
     }
 
     default StepRecord recordNewSensorValue(
             int sensorValue) {
-        Log.d(tag, "recordNewSensorValue => Let's record new stuff");
 
         long timestamp = System.currentTimeMillis();
         long lastBootTimestamp = timestamp - SystemClock.elapsedRealtime();
@@ -105,21 +100,23 @@ public interface StepDao {
         // Record new entry
         insert(rec);
 
+        Log.d(tag, "recordNewSensorValue => step midnight " + rec.stepMidnight);
+
         // Delete
         long bound = dayBegins - TimeUnit.DAYS.toMillis(ConfigAndroid.keepDataNoLongerThanXdays);
         deleteRecordsOlderThan(bound);
 
-        // Delete older ones within a 6 min range (we assume we don't need data more than every 6 minutes)
-        long lowerBound = dayBegins - TimeUnit.MINUTES.toMillis(ConfigAndroid.minDelayBetweenTwoRecords);
-        lowerBound = Math.max(dayBegins, lowerBound); // Bound the bound to midnight that day
-        deleteRecordsOnInterval(lowerBound, timestamp); // Upper bound is the timestamp of that recording
+        // Delete older ones within a X min range (we assume we don't need data more than every X minutes)
+        // long lowerBound = dayBegins - TimeUnit.MINUTES.toMillis(ConfigAndroid.minDelayBetweenTwoRecords);
+        // lowerBound = Math.max(dayBegins, lowerBound); // Bound the bound to midnight that day
+        // deleteRecordsOnInterval(lowerBound, timestamp); // Upper bound is the timestamp of that recording
 
         return rec;
     }
 
-    @Query("SELECT * FROM steprecord")
+    @Query("SELECT * FROM step_record")
     List<StepRecord> getAll();
 
-    @Query("DELETE FROM steprecord")
+    @Query("DELETE FROM step_record")
     void nukeTable();
 }

@@ -4,7 +4,7 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-@Entity
+@Entity(tableName = "reward")
 public class Reward {
     @PrimaryKey(autoGenerate = true)
     public int id;
@@ -25,6 +25,12 @@ public class Reward {
     public boolean cashedOut;
     @ColumnInfo()
     public long cashedOutTs;
+    @ColumnInfo()
+    public boolean revealedByNotification;
+    @ColumnInfo()
+    public boolean revealedByButton;
+    @ColumnInfo()
+    public long revealedTs;
     @ColumnInfo()
     public String serverTag;
     @ColumnInfo

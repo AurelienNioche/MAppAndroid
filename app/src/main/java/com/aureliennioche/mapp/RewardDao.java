@@ -7,7 +7,6 @@ import androidx.room.Query;
 import androidx.room.Transaction;
 
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import java.util.List;
 import java.util.UUID;
@@ -67,9 +66,24 @@ public interface RewardDao {
     @Query("UPDATE reward SET cashedOut = 1, cashedOutTs = :ts, localTag = :uuid WHERE id = :rewardId")
     void rewardHasBeenCashedOut(int rewardId, long ts, String uuid);
 
-    default void rewardHasBeenCashedOut(int rewardId) {
+    default void rewardHasBeenCashedOut(Reward reward) {
         long cashedOutTs = System.currentTimeMillis();;
-        rewardHasBeenCashedOut(rewardId, cashedOutTs, generateStringTag());
+        rewardHasBeenCashedOut(reward.id, cashedOutTs, generateStringTag());
+    }
+
+    @Query("UPDATE reward SET revealedByButton = :revealedByButton, " +
+            "revealedByNotification = :revealedByNotification, " +
+            "revealedTs = :ts, localTag = :uuid WHERE id = :rewardId")
+    void rewardHasBeenRevealed(int rewardId, long ts, String uuid,
+                               boolean revealedByButton,
+                               boolean revealedByNotification);
+
+    default void rewardHasBeenRevealed(Reward reward,
+                                       boolean revealedByButton,
+                                       boolean revealedByNotification) {;
+
+        rewardHasBeenRevealed(reward.id, System.currentTimeMillis(), generateStringTag(),
+                revealedByButton, revealedByNotification);
     }
 
     @Query("UPDATE reward SET objectiveReached = 1, objectiveReachedTs = :ts, localTag = :uuid WHERE id = :rewardId")

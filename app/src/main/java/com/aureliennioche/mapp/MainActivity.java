@@ -95,16 +95,15 @@ public class MainActivity extends AppCompatActivity {
             Log.d(tag, "App already installed before");
             // This is just a normal run
             return;
-
         } else if (savedVersionCode.equals(DOES_NOT_EXIST)) {
             // This is a new install (or the user cleared the shared preferences)
             Log.d(tag, "New install");
-
         } else {
             Log.d(tag, "Upgrade");
         }
 
-        if (ConfigAndroid.eraseTablesAfterInstall) {
+        // Only if upgrade or new install
+        if (ConfigAndroid.eraseTablesAfterInstallExceptSteps) {
             Log.d(tag, "Deleting previously existing tables");
             MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
             StepDao stepDao = db.stepDao();
@@ -112,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
             ProfileDao profileDao = db.profileDao();
             StatusDao statusDao = db.statusDao();
             InteractionDao interactionDao = db.interactionDao();
-            stepDao.nukeTable();
+            // stepDao.nukeTable();
             rewardDao.nukeTable();
             profileDao.nukeTable();
             statusDao.nukeTable();

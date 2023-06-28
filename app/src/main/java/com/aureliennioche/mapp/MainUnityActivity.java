@@ -164,6 +164,8 @@ public class MainUnityActivity extends UnityPlayerActivity {
         boolean experimentStarted = tsNow >= tsExpBegins;
         boolean experimentEnded = tsNow >= tsExpEnds;
 
+        boolean dayChangedAndNeedToMoveOn = false;
+
         switch (status.state) {
             case EXPERIMENT_NOT_STARTED:
                 if (experimentEnded) {
@@ -208,12 +210,10 @@ public class MainUnityActivity extends UnityPlayerActivity {
                     reward = toCashOut.get(0);
                     rewardDao.rewardHasBeenCashedOut(reward);
                     status.chestAmount += reward.amount;
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         View view = this.getCurrentFocus();
                         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM);
                     }
-
                     // Cancel the notification if still there
                     NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
                     notificationManager.cancel(reward.id);
@@ -247,14 +247,12 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 boolean buttonAction = Objects.equals(userAction, USER_ACTION_REVEAL_NEXT_REWARD);
                 boolean notificationTap = Objects.equals(userAction, USER_ACTION_OPEN_FROM_NOTIFICATION);
                 if (buttonAction || notificationTap) {
-                    toCashOut = rewardDao.rewardsThatNeedCashOut();
-
                     Log.d(tag, "user wants to reveal a new reward");
+                    toCashOut = rewardDao.rewardsThatNeedCashOut();
                     if (toCashOut.size() > 0) {
                         reward = toCashOut.get(0);
                         rewardDao.rewardHasBeenRevealed(reward, buttonAction, notificationTap);
                         status.state = WAITING_FOR_USER_TO_CASH_OUT;
-
                     } else if (experimentEnded) {
                         status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                     } else {
@@ -274,40 +272,21 @@ public class MainUnityActivity extends UnityPlayerActivity {
                     if (experimentEnded) {
                         status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
                     } else if (rewardWasYesterdayOrBefore) {
-                        List<Reward> possibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
-                        if (possibleRewards.size() > 0) {
-                            reward = possibleRewards.get(0);
-                            rewardDao.rewardHasBeenRevealed(reward, false, false);
-                        } else {
-                            // This might never happen - probably can remove it later on
-                            Log.d(tag, "THIS SHOULD NOT HAPPEN!");
-                            // status.state = LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
-                            status.error = "Error! No newer reward found!";
-                        }
+                        // Handle change of day
+                        dayChangedAndNeedToMoveOn = true;
                     } else {
                         Log.d(tag, "Waiting for user to reveal new reward");
                     }
                 } else {
                     Log.d(tag, "Waiting for user to reveal new reward");
                 }
-
                 break;
 
             case LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT:
-
+                // Only thing to handle is the change of day
                 if (rewardWasYesterdayOrBefore) {
-                    // We change of day
-                    if (experimentEnded) {
-                        status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
-                    } else {
-                        List<Reward> nextPossibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
-                        if (nextPossibleRewards.size() > 0) {
-                            reward = nextPossibleRewards.get(0);
-                            status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
-                        } else {
-                            status.error = "Error! I didn't find any reward to reveal!";
-                        }
-                    }
+                    // We change of day - change of status below
+                    dayChangedAndNeedToMoveOn = true;
                 }
                 break;
 
@@ -316,17 +295,8 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 if (reward.objectiveReached) {
                     status.state = WAITING_FOR_USER_TO_CASH_OUT;
                 } else if (rewardWasYesterdayOrBefore) {
-                    if (experimentEnded) {
-                        status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
-                    } else {
-                        List<Reward> nextPossibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
-                        if (nextPossibleRewards.size() > 0) {
-                            reward = nextPossibleRewards.get(0);
-                            status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
-                        } else {
-                            status.error = "Error! The day changed but I didn't find any reward to reveal!";
-                        }
-                    }
+                    // We change of day - change of status below
+                    dayChangedAndNeedToMoveOn = true;
                 }
                 break;
 
@@ -334,6 +304,24 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 Log.d(tag, "Case not handled");
                 status.error = "I encountered an error!";
                 break;
+        }
+
+        if (dayChangedAndNeedToMoveOn) {
+            List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
+            if (toCashOut.size() > 0) {
+                reward = toCashOut.get(0);
+                status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+            } else if (experimentEnded) {
+                status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+            } else {
+                List<Reward> nextPossibleRewards = rewardDao.nextPossibleReward(dayBegins, dayEnds);
+                if (nextPossibleRewards.size() > 0) {
+                    reward = nextPossibleRewards.get(0);
+                    status.state = WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
+                } else {
+                    status.error = "Error! The day changed but I didn't find any reward to reveal!";
+                }
+            }
         }
 
         status.stepNumber = stepDao.getStepNumberSinceMidnightThatDay(reward.ts);

@@ -23,6 +23,6 @@ public class ConfigUnity {
     @SuppressWarnings("unused")
     public boolean offlineMode = false;  //TODO: Be sure to put it to `false` for production
     @SuppressWarnings("unused")
-    public String appVersion = "2023.06.24";
+    public String appVersion = "2023.06.24";  // It is actually 2023.06.28 but we won't restart everyone
     //TODO: Check as well the Android settings
 }

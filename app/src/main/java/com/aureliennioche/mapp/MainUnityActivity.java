@@ -120,8 +120,6 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         Log.d(tag, "Status at the INITIALIZATION " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
         statusDao.insert(s);
-
-        // test
     }
 
     @SuppressWarnings({"unused", "UnusedReturnValue"})

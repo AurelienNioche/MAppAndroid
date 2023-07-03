@@ -31,4 +31,8 @@ public interface ProfileDao {
 
     @Query("SELECT * FROM profile")
     List<Profile> getAll();
+
+    default boolean isProfileSet() {
+        return getRowCount() > 0;
+    }
 }

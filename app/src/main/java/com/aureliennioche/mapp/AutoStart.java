@@ -16,7 +16,9 @@ public class AutoStart extends BroadcastReceiver {
             {
                 if (action.equals(Intent.ACTION_BOOT_COMPLETED)) {
                     Log.w(tag, "Action is: " + action);
+                    // Restart the step service
                     context.startForegroundService(new Intent(context, StepService.class));
+
                 }
             }
         }

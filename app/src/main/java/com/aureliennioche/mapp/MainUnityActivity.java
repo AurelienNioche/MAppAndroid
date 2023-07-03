@@ -81,45 +81,34 @@ public class MainUnityActivity extends UnityPlayerActivity {
     }
 
     @SuppressWarnings("unused")
-    public void initSet(
-            String username,
-            double chestAmount,
-            int dailyObjective,
-            String rewardList
-    ) throws JsonProcessingException {
+    public boolean isWebSocketOpen() {
+        Log.d("ws", "ws.ws is "+ WebSocketClient.ws);
+        WebSocketClient ws = WebSocketClient.getInstance();
+        Log.d("ws", "ws bool" + ws.connected);
+        return true; //WebSocketClient.ws != null;
+    }
 
-        Status s = new Status();
+    @SuppressWarnings("unused")
+    public boolean isLoginChecked() {
+        return WebSocketClient.loginChecked;
+    }
 
-        // Set up profile
-        if (profileDao.getRowCount() > 0) {
-            Log.d(tag, "THIS SHOULD NOT HAPPEN");
-            s.error = "Profile already exists";
-        }
+    @SuppressWarnings("unused")
+    public boolean isLoginOk() {
+        return WebSocketClient.loginOk;
+    }
 
-        Profile p = new Profile();
-        p.username = username;
-        profileDao.insert(p);
-
-        // Set up rewards
-        List<Reward> rewards = mapper.readValue(rewardList, new TypeReference<List<Reward>>(){});
-        String tag =  rewardDao.generateStringTag();
-        rewards.forEach(item -> {item.serverTag = tag; item.localTag = tag;});
-
-        rewardDao.insertRewardsIfNotExisting(rewards);
-
-        Log.d(tag, "rewards saved:");
-        rewardDao.getAll().forEach(item -> Log.d(tag, "reward id " + item.id + "tag " + item.serverTag));
-
-        Reward r = rewardDao.getFirstReward();
-
-        s.state = EXPERIMENT_NOT_STARTED;
-        s.chestAmount = chestAmount;
-        s.dailyObjective = dailyObjective;
-        s = statusDao.setRewardAttributes(s, r);
-        s.stepNumber = stepDao.getStepNumberSinceMidnightThatDay(r.ts);
-
-        Log.d(tag, "Status at the INITIALIZATION " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
-        statusDao.insert(s);
+    @SuppressWarnings("unused")
+    public void userEnteredUsername(String username) throws JsonProcessingException {
+        Log.d(tag, "Sending login");
+        WebSocketClient.loginChecked = false; // Reset flag
+        WebSocketClient ws = WebSocketClient.getInstance();
+        LoginRequest lr = new LoginRequest();
+        lr.appVersion = ConfigAndroid.appVersion;
+        lr.resetUser = ConfigAndroid.askServerToResetUser;
+        lr.username = username;
+        String lrJson = mapper.writeValueAsString(lr);
+        ws.send(lrJson);
     }
 
     @SuppressWarnings({"unused", "UnusedReturnValue"})
@@ -150,7 +139,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         Reward reward = rewardDao.getReward(status.rewardId);
 
-        Log.d(tag, "Status BEFORE updating " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
+        // Log.d(tag, "Status BEFORE updating " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
         // Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reward));
 
         // First, look if dates of the experiment are gone
@@ -329,7 +318,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         statusDao.update(status);
 
-        Log.d(tag, "Status AFTER updating" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
+        // Log.d(tag, "Status AFTER updating" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
         return mapper.writeValueAsString(status);
     }
 
@@ -341,61 +330,6 @@ public class MainUnityActivity extends UnityPlayerActivity {
     }
 
     // --------------------------------------
-
-    @SuppressWarnings("unused")
-    public String[] syncServer(
-            long lastRecordTimestampMillisecond,
-            long lastInteractionTimestampMillisecond,
-            String syncRewardsIdJSON,
-            String syncRewardsServerTagJSON)
-            throws JsonProcessingException {
-
-        List<Integer> syncRewardsId = mapper.readValue(syncRewardsIdJSON, new TypeReference<List<Integer>>() {});
-        List<String> syncRewardsServerTag = mapper.readValue(syncRewardsServerTagJSON, new TypeReference<List<String>>() {});
-
-        // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
-        List<StepRecord> newRecord = stepDao.getRecordsNewerThan(lastRecordTimestampMillisecond);
-        String newRecordJson =  mapper.writeValueAsString(newRecord);
-
-        rewardDao.updateServerTags(syncRewardsId, syncRewardsServerTag);
-
-        List<Reward>  rewards = rewardDao.getUnSyncRewards();
-        String unSyncRewards = mapper.writeValueAsString(rewards);
-
-        Status status = statusDao.getStatus();
-        String statusJson = mapper.writeValueAsString(status);
-
-        List<Interaction> newInteractions = interactionDao.getInteractionsNewerThan(lastInteractionTimestampMillisecond);
-        String newInteractionsJson =  mapper.writeValueAsString(newInteractions);
-
-        String username = profileDao.getUsername();
-        return new String[]{
-            username, newRecordJson, unSyncRewards, statusJson, newInteractionsJson
-        };
-    }
-
-    @SuppressWarnings("unused")
-    public String[] syncServer()
-            throws JsonProcessingException {
-
-        // TODO: (OPTIONAL FOR NOW) delete older records, as they are already on the server
-        List<StepRecord> newRecord = stepDao.getAll();
-        String newRecordJson =  mapper.writeValueAsString(newRecord);
-
-        List<Reward>  rewards = rewardDao.getUnSyncRewards();
-        String unSyncRewards = mapper.writeValueAsString(rewards);
-
-        Status status = statusDao.getStatus();
-        String statusJson = mapper.writeValueAsString(status);
-
-        List<Interaction> newInteractions = interactionDao.getAll();
-        String newInteractionsJson =  mapper.writeValueAsString(newInteractions);
-
-        String username = profileDao.getUsername();
-        return new String[]{
-                username, newRecordJson, unSyncRewards, statusJson, newInteractionsJson
-        };
-    }
 
     // -------------------------------------------------------------------------------------
 

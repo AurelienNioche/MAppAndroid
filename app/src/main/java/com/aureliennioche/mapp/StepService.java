@@ -34,6 +34,8 @@ public class StepService extends Service implements SensorEventListener {
     StepDao stepDao;
     RewardDao rewardDao;
 
+    WebSocketClient ws;
+
     // Binder given to clients.
     private final IBinder binder = new LocalBinder();
 
@@ -50,6 +52,9 @@ public class StepService extends Service implements SensorEventListener {
         MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
         stepDao = db.stepDao();
         rewardDao = db.rewardDao();
+
+        ws = WebSocketClient.getInstance();
+        ws.start(this);
     }
 
 
@@ -101,6 +106,10 @@ public class StepService extends Service implements SensorEventListener {
         Toast.makeText(this, "MApp step counter service has been killed!", Toast.LENGTH_SHORT).show();
         if (sensorManager != null) {
             sensorManager.unregisterListener(this);
+        }
+
+        if (WebSocketClient.ws != null) {
+            WebSocketClient.ws.close(1000, null);
         }
 
         super.onDestroy();

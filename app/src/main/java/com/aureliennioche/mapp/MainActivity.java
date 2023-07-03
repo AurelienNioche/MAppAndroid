@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.StrictMode;
 import android.util.Log;
 import android.view.View;
 
@@ -19,6 +20,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import org.joda.time.DateTimeZone;
+
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -130,6 +133,8 @@ public class MainActivity extends AppCompatActivity {
 
         Intent intent = new Intent(this, StepService.class);
         bindService(intent, connection, Context.BIND_AUTO_CREATE);
+
+        // StrictMode.enableDefaults(); // TODO: REMOVE FOR PRODUCTION
 
         launchUnity();
 

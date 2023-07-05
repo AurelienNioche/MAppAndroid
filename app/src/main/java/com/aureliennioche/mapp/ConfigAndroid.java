@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ConfigAndroid {
     static final int keepDataNoLongerThanXdays = 90;
-    static final boolean eraseTablesAfterInstallExceptSteps = true;
+    static final boolean eraseTablesAfterInstallExceptSteps = false;//TODO: Be sure to set that correctly for production
     static final String timezoneId = "Europe/London";
 
     // Macbook pro at home: "ws://192.168.0.14:8080/ws"

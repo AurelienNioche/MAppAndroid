@@ -2,6 +2,10 @@ package com.aureliennioche.mapp;
 
 import static com.aureliennioche.mapp.Status.EXPERIMENT_NOT_STARTED;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -30,17 +34,13 @@ class WebSocketClient extends WebSocketListener {
 
     private final String TAG = "testing";
 
-    public static volatile WebSocket ws;
-    public static volatile boolean loginChecked;
-    public static volatile boolean loginOk;
-
-    public volatile boolean connected = false;
-
     private static WebSocketClient instance;
 
     static final String tag = "testing";
 
     private static final ObjectMapper mapper = new ObjectMapper();
+
+    private WebSocket ws;
 
     // Interfaces to the database
     MAppDatabase db;
@@ -87,11 +87,13 @@ class WebSocketClient extends WebSocketListener {
         statusDao = db.statusDao();
         interactionDao = db.interactionDao();
 
+        setupBroadcasterReceiver();
         startWebSocket();
     }
 
     public void startWebSocket() {
         Log.d(tag, "Starting web socket");
+
         OkHttpClient client = new OkHttpClient.Builder()
                 .readTimeout(0,  TimeUnit.MILLISECONDS)
                 .build();
@@ -112,11 +114,8 @@ class WebSocketClient extends WebSocketListener {
         // webSocket.send(ByteString.decodeHex("deadbeef"));
         // webSocket.close(1000, "Goodbye, World!");
         ws = webSocket;
-        connected = true;
-        Log.d("ws", "CONNECTED ___________--_______________________________________");
-        Log.d("ws", "ws bool " + connected);
-        WebSocketClient ws = WebSocketClient.getInstance();
-        Log.d("ws", "ws bool " + ws.connected);
+
+        broadcastConnection();
         backgroundSync();
     }
 
@@ -150,6 +149,7 @@ class WebSocketClient extends WebSocketListener {
         webSocket.close(1000, null);
         Log.d(TAG, "CLOSE: " + code + " " + reason);
         ws = null;
+        broadcastConnection();
     }
 
     @Override public void onFailure(@NonNull WebSocket webSocket, Throwable t, Response response) {
@@ -158,12 +158,21 @@ class WebSocketClient extends WebSocketListener {
 
         t.printStackTrace();
 
+        broadcastConnection();
+
         Handler handler = new Handler(Looper.getMainLooper());
         // Define the code block to be executed
         handler.postDelayed(() -> {
-            Log.d(tag, "tyring to reconnect server");
+            Log.d(tag, "Trying to reconnect server");
             startWebSocket();
-        }, 5000);
+        }, ConfigAndroid.delayServerReconnection);
+    }
+
+    public void close() {
+        Log.d(tag, "I have been ordered to close");
+        if (ws != null) {
+            ws.close(1000, null);
+        }
     }
 
     public void syncServer() {
@@ -228,18 +237,7 @@ class WebSocketClient extends WebSocketListener {
             }
 
         } else {
-            Log.d(tag, "websocket not connected");
-            startWebSocket();
-
-            Handler handler = new Handler(Looper.getMainLooper());
-            // Define the code block to be executed
-            handler.postDelayed(() -> {
-                Log.d(tag, "tyring again to sync server");
-                //Do something after 5000ms
-                if (isOpen()) {
-                    syncServer();
-                }
-            }, 5000);
+            Log.d(tag, "Websocket not connected, I'll skip");
         }
     }
 
@@ -260,52 +258,72 @@ class WebSocketClient extends WebSocketListener {
             LoginResponse lr
     ) throws JsonProcessingException {
 
-        loginOk = lr.ok;
+        if (lr.ok) {
+            String rewardListJson = lr.rewardList;
+            String username = lr.username;
+            double chestAmount = lr.chestAmount;
+            int dailyObjective = lr.dailyObjective;
 
-        if (!loginOk) {
-            loginChecked = true;
-            Log.d(tag, "error during login, nothing to do");
+            Status s = new Status();
+
+            // Set up profile
+            if (profileDao.getRowCount() > 0) {
+                Log.d(tag, "THIS SHOULD NOT HAPPEN");
+                s.error = "Profile already exists";
+            }
+
+            Profile p = new Profile();
+            p.username = username;
+            profileDao.insert(p);
+
+            // Set up rewards
+            List<Reward> rewards = mapper.readValue(rewardListJson, new TypeReference<List<Reward>>(){});
+            String tag =  rewardDao.generateStringTag();
+            rewards.forEach(item -> {item.serverTag = tag; item.localTag = tag;});
+
+            rewardDao.insertRewardsIfNotExisting(rewards);
+
+            Log.d(tag, "Rewards saved:");
+            rewardDao.getAll().forEach(item -> Log.d(tag, "reward id " + item.id + "tag " + item.serverTag));
+
+            Reward r = rewardDao.getFirstReward();
+
+            s.state = EXPERIMENT_NOT_STARTED;
+            s.chestAmount = chestAmount;
+            s.dailyObjective = dailyObjective;
+            s = statusDao.setRewardAttributes(s, r);
+            s.stepNumber = stepDao.getStepNumberSinceMidnightThatDay(r.ts);
+
+            Log.d(tag, "Status at the INITIALIZATION " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
+            statusDao.insert(s);
         }
 
-        String rewardListJson = lr.rewardList;
-        String username = lr.username;
-        double chestAmount = lr.chestAmount;
-        int dailyObjective = lr.dailyObjective;
+        broadcastLoginInfo(lr);
+    }
 
-        Status s = new Status();
+    public void setupBroadcasterReceiver() {
+        IntentFilter filter = new IntentFilter("WEBSOCKET_SEND");
 
-        // Set up profile
-        if (profileDao.getRowCount() > 0) {
-            Log.d(tag, "THIS SHOULD NOT HAPPEN");
-            s.error = "Profile already exists";
-        }
+        BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.d(tag, "WebSocketClient => Received a broadcast for sending a message");
+                String msg = intent.getStringExtra("message");
+                send(msg);
+            }
+        };
+        stepService.registerReceiver(receiver, filter);
 
-        Profile p = new Profile();
-        p.username = username;
-        profileDao.insert(p);
-
-        // Set up rewards
-        List<Reward> rewards = mapper.readValue(rewardListJson, new TypeReference<List<Reward>>(){});
-        String tag =  rewardDao.generateStringTag();
-        rewards.forEach(item -> {item.serverTag = tag; item.localTag = tag;});
-
-        rewardDao.insertRewardsIfNotExisting(rewards);
-
-        Log.d(tag, "rewards saved:");
-        rewardDao.getAll().forEach(item -> Log.d(tag, "reward id " + item.id + "tag " + item.serverTag));
-
-        Reward r = rewardDao.getFirstReward();
-
-        s.state = EXPERIMENT_NOT_STARTED;
-        s.chestAmount = chestAmount;
-        s.dailyObjective = dailyObjective;
-        s = statusDao.setRewardAttributes(s, r);
-        s.stepNumber = stepDao.getStepNumberSinceMidnightThatDay(r.ts);
-
-        Log.d(tag, "Status at the INITIALIZATION " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
-        statusDao.insert(s);
-
-        loginChecked = true;
+        filter = new IntentFilter("WEBSOCKET_CONNECTION_INFO");
+        receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                //do something based on the intent's action
+                Log.d(tag, "WebSocketClient => Received broadcast");
+                broadcastConnection();
+            }
+        };
+        stepService.registerReceiver(receiver, filter);
     }
 
     public void send(String message) {
@@ -322,11 +340,38 @@ class WebSocketClient extends WebSocketListener {
                     Log.d(tag, "I will try back");
                     // Repeat this the same runnable code block again another 2 seconds
                     // 'this' is referencing the Runnable object
-                    handler.postDelayed(this, 5000);
+                    handler.postDelayed(this, ConfigAndroid.delaySendRetry);
                 }
             }
         };
         // Start the initial runnable task by posting through the handler
         handler.post(runnableCode);
+    }
+
+    void broadcastConnection() {
+        Log.d(tag, "Send broadcast for connection");
+        boolean webSocketOpen = ws != null;
+        Intent broadcastIntent = new Intent("MAIN_UNITY_ACTIVITY_CONNECTION_INFO");
+        ConnectionInfo ci = new ConnectionInfo();
+        ci.connected = webSocketOpen;
+        String ciJson;
+        try {
+            ciJson = mapper.writeValueAsString(ci);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        broadcastIntent.putExtra("connectionInfoJson", ciJson);
+        Log.d(tag, "Connection info: " + ciJson);
+        stepService.sendBroadcast(broadcastIntent);
+    }
+
+    void broadcastLoginInfo(LoginResponse loginResponse) throws JsonProcessingException {
+        Log.d(tag, "Send broadcast for login");
+        LoginInfo li = new LoginInfo();
+        li.loginOk = loginResponse.ok;
+        String liJson = mapper.writeValueAsString(li);
+        Intent broadcastIntent = new Intent("MAIN_UNITY_ACTIVITY_LOGIN_INFO");
+        broadcastIntent.putExtra("loginInfoJson", liJson);
+        stepService.sendBroadcast(broadcastIntent);
     }
 }

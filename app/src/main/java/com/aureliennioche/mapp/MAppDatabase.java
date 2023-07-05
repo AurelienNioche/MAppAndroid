@@ -1,6 +1,7 @@
 package com.aureliennioche.mapp;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.room.Database;
 import androidx.room.Room;
@@ -26,6 +27,7 @@ public abstract class MAppDatabase extends RoomDatabase {
     public static synchronized MAppDatabase getInstance(Context context)
     {
         if (instance==null) {
+            Log.d("testing", "CREATING DATABASE");
             instance = Room.databaseBuilder(context,
                     MAppDatabase.class, "mapp-database")
                     .allowMainThreadQueries()

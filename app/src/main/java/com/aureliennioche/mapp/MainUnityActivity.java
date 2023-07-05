@@ -8,7 +8,10 @@ import static com.aureliennioche.mapp.Status.ONGOING_OBJECTIVE;
 import static com.aureliennioche.mapp.Status.WAITING_FOR_USER_TO_CASH_OUT;
 import static com.aureliennioche.mapp.Status.WAITING_FOR_USER_TO_REVEAL_NEW_REWARD;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -20,6 +23,8 @@ import androidx.core.app.NotificationManagerCompat;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.unity3d.player.L;
+import com.unity3d.player.UnityPlayer;
 import com.unity3d.player.UnityPlayerActivity;
 
 import org.joda.time.DateTime;
@@ -42,6 +47,10 @@ public class MainUnityActivity extends UnityPlayerActivity {
     StatusDao statusDao;
     InteractionDao interactionDao;
 
+    boolean webSocketOpen;
+    boolean loginChecked;
+    boolean loginOk;
+
     // ------------------------------------------------------------------------------------
 
     @Override
@@ -59,6 +68,8 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         // Record the event
         interactionDao.newInteraction("onCreate");
+
+        setupBroadcasterReceiver();
 
         // For starting Unity
         Intent intentUnityPlayer = getIntent();
@@ -81,34 +92,38 @@ public class MainUnityActivity extends UnityPlayerActivity {
     }
 
     @SuppressWarnings("unused")
-    public boolean isWebSocketOpen() {
-        Log.d("ws", "ws.ws is "+ WebSocketClient.ws);
-        WebSocketClient ws = WebSocketClient.getInstance();
-        Log.d("ws", "ws bool" + ws.connected);
-        return true; //WebSocketClient.ws != null;
-    }
-
-    @SuppressWarnings("unused")
-    public boolean isLoginChecked() {
-        return WebSocketClient.loginChecked;
-    }
-
-    @SuppressWarnings("unused")
-    public boolean isLoginOk() {
-        return WebSocketClient.loginOk;
+    public void updateConnectionInfo() {
+        Log.d(tag, "MainUnityActivity => Send broadcast for updating connection info");
+        Intent broadcastIntent = new Intent("WEBSOCKET_CONNECTION_INFO");
+        sendBroadcast(broadcastIntent);
     }
 
     @SuppressWarnings("unused")
     public void userEnteredUsername(String username) throws JsonProcessingException {
-        Log.d(tag, "Sending login");
-        WebSocketClient.loginChecked = false; // Reset flag
-        WebSocketClient ws = WebSocketClient.getInstance();
+        Log.d(tag, "MainUnityActivity => Sending broadcast for login");
+        loginChecked = false; // Reset flags
+        loginOk = false; // Reset flags
         LoginRequest lr = new LoginRequest();
         lr.appVersion = ConfigAndroid.appVersion;
         lr.resetUser = ConfigAndroid.askServerToResetUser;
         lr.username = username;
         String lrJson = mapper.writeValueAsString(lr);
-        ws.send(lrJson);
+
+        Intent broadcastIntent = new Intent("WEBSOCKET_SEND");
+        broadcastIntent.putExtra("message", lrJson);
+        sendBroadcast(broadcastIntent);
+    }
+
+    @SuppressWarnings("unused")
+    public boolean isProfileSet() {
+        boolean val = profileDao.getRowCount() > 0;
+        Log.d(tag, "MainUnityActivity => Profile set = "+ val);
+        return val;
+    }
+
+    @SuppressWarnings("unused")
+    public boolean isLoginChecked() {
+        return loginChecked;
     }
 
     @SuppressWarnings({"unused", "UnusedReturnValue"})
@@ -116,24 +131,24 @@ public class MainUnityActivity extends UnityPlayerActivity {
         Status status = statusDao.getStatus();
 
         if (!Objects.equals(status.error, "")) {
-            Log.d(tag, "There is an error, I won't change anything");
+            Log.d(tag, "MainUnityActivity => There is an error, I won't change anything");
             return mapper.writeValueAsString(status);
         }
         switch (userAction) {
             case USER_ACTION_CASH_OUT:
-                Log.d(tag, "Just for info: User clicked cashed out");
+                Log.d(tag, "MainUnityActivity => Just for info: User clicked cashed out");
                 break;
             case USER_ACTION_REVEAL_NEXT_REWARD:
-                Log.d(tag, "Just for info: User clicked next reward");
+                Log.d(tag, "MainUnityActivity => Just for info: User clicked next reward");
                 break;
             case USER_ACTION_NONE:
-                Log.d(tag, "Just for info: No user action");
+                Log.d(tag, "MainUnityActivity => Just for info: No user action");
                 break;
             case USER_ACTION_OPEN_FROM_NOTIFICATION:
-                Log.d(tag, "Just for info: Open from notification");
+                Log.d(tag, "MainUnityActivity => Just for info: Open from notification");
                 break;
             default:
-                Log.d(tag, "User action not recognized!!! This shouldn't happen");
+                Log.d(tag, "MainUnityActivity => User action not recognized!!! This shouldn't happen");
                 break;
         }
 
@@ -172,13 +187,13 @@ public class MainUnityActivity extends UnityPlayerActivity {
                         if (possibleRewards.size() > 0) {
                             reward = possibleRewards.get(0);
                         } else {
-                            Log.d(tag, "THIS SHOULD NOT HAPPEN!!!!! Maybe reset the server?");
+                            Log.d(tag, "MainUnityActivity => THIS SHOULD NOT HAPPEN!!!!! Maybe reset the server?");
                             status.error = "Error! I couldn't find the reward to show!";
                         }
                     }
                 } else {
                     // User still needs to wait
-                    Log.d(tag, "Experiment not started yet");
+                    Log.d(tag, "MainUnityActivity => Experiment not started yet");
                 }
                 break;
 
@@ -191,11 +206,11 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 List<Reward> toCashOut = rewardDao.rewardsThatNeedCashOut();
                 boolean needToMoveOn;
                 if (toCashOut.size() == 0) {
-                    Log.d(tag, "THIS SHOULD NOT HAPPEN. I'LL STILL UPDATE TO NEXT STAGE");
+                    Log.d(tag, "MainUnityActivity => THIS SHOULD NOT HAPPEN. I'LL STILL UPDATE TO NEXT STAGE");
                     status.error = "Error! Waiting for cash out but nothing to cash out!";
                     needToMoveOn = false;
                 } else if (Objects.equals(userAction, USER_ACTION_CASH_OUT)) {
-                    Log.d(tag, "User cashed out");
+                    Log.d(tag, "MainUnityActivity => User cashed out");
                     reward = toCashOut.get(0);
                     rewardDao.rewardHasBeenCashedOut(reward);
                     status.chestAmount += reward.amount;
@@ -208,7 +223,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
                     notificationManager.cancel(reward.id);
                     needToMoveOn = true;
                 } else {
-                    Log.d(tag, "Waiting for user to cash out");
+                    Log.d(tag, "MainUnityActivity => Waiting for user to cash out");
                     needToMoveOn = false;
                 }
 
@@ -236,7 +251,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 boolean buttonAction = Objects.equals(userAction, USER_ACTION_REVEAL_NEXT_REWARD);
                 boolean notificationTap = Objects.equals(userAction, USER_ACTION_OPEN_FROM_NOTIFICATION);
                 if (buttonAction || notificationTap) {
-                    Log.d(tag, "user wants to reveal a new reward");
+                    Log.d(tag, "MainUnityActivity => User wants to reveal a new reward");
                     toCashOut = rewardDao.rewardsThatNeedCashOut();
                     if (toCashOut.size() > 0) {
                         reward = toCashOut.get(0);
@@ -252,7 +267,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
                             status.state = ONGOING_OBJECTIVE;
                         } else {
                             // This might never happen - probably can remove it later on
-                            Log.d(tag, "THIS SHOULD NOT HAPPEN!");
+                            Log.d(tag, "MainUnityActivity => THIS SHOULD NOT HAPPEN!");
                             // status.state = LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT;
                             status.error = "Error! No newer reward found!";
                         }
@@ -264,10 +279,10 @@ public class MainUnityActivity extends UnityPlayerActivity {
                         // Handle change of day
                         dayChangedAndNeedToMoveOn = true;
                     } else {
-                        Log.d(tag, "Waiting for user to reveal new reward");
+                        Log.d(tag, "MainUnityActivity => Waiting for user to reveal new reward");
                     }
                 } else {
-                    Log.d(tag, "Waiting for user to reveal new reward");
+                    Log.d(tag, "MainUnityActivity => Waiting for user to reveal new reward");
                 }
                 break;
 
@@ -290,7 +305,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 break;
 
             default:
-                Log.d(tag, "Case not handled");
+                Log.d(tag, "MainUnityActivity => Case not handled");
                 status.error = "I encountered an error!";
                 break;
         }
@@ -322,11 +337,36 @@ public class MainUnityActivity extends UnityPlayerActivity {
         return mapper.writeValueAsString(status);
     }
 
-    @SuppressWarnings("unused")
-    public boolean isProfileSet() {
-        boolean val =profileDao.getRowCount() > 0;
-        Log.d(tag, "Profile set = "+ val);
-        return val;
+    // ---------------------------------------------------------------------------
+
+    public void setupBroadcasterReceiver() {
+        IntentFilter filter = new IntentFilter("MAIN_UNITY_ACTIVITY_CONNECTION_INFO");
+
+        BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                //do something based on the intent's action
+                Log.d(tag,  "MainUnityActivity => Received broadcast for connection info");
+                String loginInfoJson = intent.getStringExtra("connectionInfoJson");
+                UnityPlayer.UnitySendMessage("AndroidController", "SetConnectionInfo", loginInfoJson);
+            }
+        };
+        registerReceiver(receiver, filter);
+
+        // --------------------------
+
+        filter = new IntentFilter("MAIN_UNITY_ACTIVITY_LOGIN_INFO");
+
+        receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                //do something based on the intent's action
+                Log.d(tag,  "MainUnityActivity => Received broadcast");
+                String loginInfoJson = intent.getStringExtra("loginInfoJson");
+                UnityPlayer.UnitySendMessage("AndroidController", "SetLoginInfo", loginInfoJson);
+            }
+        };
+        registerReceiver(receiver, filter);
     }
 
     // --------------------------------------
@@ -337,9 +377,6 @@ public class MainUnityActivity extends UnityPlayerActivity {
     protected void onDestroy() {
 
         Log.d(tag, "UnityActivity => on destroy");
-//        Intent intent = new Intent("MAIN_UNITY_ACTIVITY_CALLBACK");
-//        intent.putExtra("CALLBACK", "onDestroy");
-//        sendBroadcast(intent);
 
         // Record
         interactionDao.newInteraction("onDestroy");
@@ -389,7 +426,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
     void handleIntent(Intent intent) {
         if(intent == null || intent.getExtras() == null) return;
 
-        if (intent.getExtras().containsKey("LAUNCHED_FROM_NOTIFICATION")) {
+        if (intent.getExtras().containsKey("UnityActivity => LAUNCHED_FROM_NOTIFICATION")) {
             Log.d(tag, "Opened from the notification corresponding to the reward id "+ intent.getExtras().getInt("LAUNCHED_FROM_NOTIFICATION"));
 
             // Record

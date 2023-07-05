@@ -1,9 +1,11 @@
 package com.aureliennioche.mapp;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -21,6 +23,7 @@ import androidx.core.content.ContextCompat;
 
 import org.joda.time.DateTimeZone;
 
+import java.util.Objects;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -137,23 +140,6 @@ public class MainActivity extends AppCompatActivity {
         // StrictMode.enableDefaults(); // TODO: REMOVE FOR PRODUCTION
 
         launchUnity();
-
-//        IntentFilter filter = new IntentFilter("MAIN_UNITY_ACTIVITY_CALLBACK");
-
-//        BroadcastReceiver receiver = new BroadcastReceiver() {
-//            @Override
-//            public void onReceive(Context context, Intent intent) {
-//                //do something based on the intent's action
-//                Log.d(tag,  "MainActivity => Received broadcast");
-//                String callback = intent.getStringExtra("CALLBACK");
-//                Log.d(tag, "Broadcast is " + callback);
-//                if (Objects.equals(callback, "onStop")) {
-//                    Status status = status
-//                    // stepService.onStopApp();
-//                }
-//            }
-//        };
-//        registerReceiver(receiver, filter);
     }
 
     public void launchUnity() {

@@ -9,4 +9,5 @@
     <string name="notification_foreground_message">Your number of steps are collected in the background.</string>
     <string name="notification_objective_reached_title">Congrats, %2$d steps more done! You can cash out £%1$.2f!</string>
     <string name="notification_objective_reached_message">That\'s %1$d steps done today! Cash out your reward and see your next objective!</string>
+    <string name="dummy_attribution_label">Dummy attribution label</string>
 </resources>

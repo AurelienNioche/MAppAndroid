@@ -12,6 +12,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
@@ -108,8 +109,8 @@ public class StepService extends Service implements SensorEventListener {
             sensorManager.unregisterListener(this);
         }
 
-        if (WebSocketClient.ws != null) {
-            WebSocketClient.ws.close(1000, null);
+        if (ws != null) {
+            ws.close();
         }
 
         super.onDestroy();

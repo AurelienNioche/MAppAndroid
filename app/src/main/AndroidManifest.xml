@@ -46,6 +46,8 @@
             </intent-filter>
         </receiver>
     </application>
-
-
+    <!--     To avoid error 'attributionTag ...' which is thrown when service is restarted after a reboot-->
+    <attribution
+        android:tag=""
+        android:label="@string/dummy_attribution_label" />
 </manifest>

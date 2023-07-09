@@ -12,10 +12,10 @@ public class ConfigAndroid {
     public static final String websocketUrl="wss://samoa.dcs.gla.ac.uk/mapp/ws"; //TODO: Be sure to set that correctly for production
     public static boolean askServerToResetUser = false; //TODO: Be sure to put it to `false` for production
     //TODO: Check as well the Unity settings
-    public static String appVersion = "2023.06.24"; // It is actually 2023.07.05 but we won't restart everyone
+    public static String appVersion = "2023.06.24"; // It is actually 2023.07.09 but we won't restart everyone
     public static long delaySendRetry = TimeUnit.SECONDS.toMillis(5);
     public static long delayServerReconnection = TimeUnit.SECONDS.toMillis(30);
-    public static boolean updateServer = false; //TODO: This should be true for production
+    public static boolean updateServer = true; //TODO: This should be TRUE for production
     public static boolean initWithStepRecords = true; //TODO: Check that for production
     public static boolean initWithStatus = true; //TODO: Check that for production
     static final boolean eraseProfileTableAfterUpdate = true; //TODO: Be sure to set that correctly for production

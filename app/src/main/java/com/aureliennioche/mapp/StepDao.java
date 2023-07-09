@@ -119,4 +119,7 @@ public interface StepDao {
 
     @Query("DELETE FROM step_record")
     void nukeTable();
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    void insertIfNotExisting(List<StepRecord> stepRecords);
 }

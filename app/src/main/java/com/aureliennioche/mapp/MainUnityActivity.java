@@ -130,22 +130,25 @@ public class MainUnityActivity extends UnityPlayerActivity {
     public String getStatus(String userAction) throws JsonProcessingException {
         Status status = statusDao.getStatus();
 
+        Log.d(tag, "------------------------------------------------------");
+        Log.d(tag, "Status BEFORE updating " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
+
         if (!Objects.equals(status.error, "")) {
             Log.d(tag, "MainUnityActivity => There is an error, I won't change anything");
             return mapper.writeValueAsString(status);
         }
         switch (userAction) {
             case USER_ACTION_CASH_OUT:
-                Log.d(tag, "MainUnityActivity => Just for info: User clicked cashed out");
+                Log.d(tag, "MainUnityActivity => [User action] User clicked cashed out");
                 break;
             case USER_ACTION_REVEAL_NEXT_REWARD:
-                Log.d(tag, "MainUnityActivity => Just for info: User clicked next reward");
+                Log.d(tag, "MainUnityActivity => [User action] User clicked next reward");
                 break;
             case USER_ACTION_NONE:
-                Log.d(tag, "MainUnityActivity => Just for info: No user action");
+                // Log.d(tag, "MainUnityActivity => Just for info: No user action");
                 break;
             case USER_ACTION_OPEN_FROM_NOTIFICATION:
-                Log.d(tag, "MainUnityActivity => Just for info: Open from notification");
+                Log.d(tag, "MainUnityActivity => [User action] Open from notification");
                 break;
             default:
                 Log.d(tag, "MainUnityActivity => User action not recognized!!! This shouldn't happen");
@@ -153,8 +156,6 @@ public class MainUnityActivity extends UnityPlayerActivity {
         }
 
         Reward reward = rewardDao.getReward(status.rewardId);
-
-        // Log.d(tag, "Status BEFORE updating " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
         // Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reward));
 
         // First, look if dates of the experiment are gone
@@ -333,7 +334,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         statusDao.update(status);
 
-        // Log.d(tag, "Status AFTER updating" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
+        Log.d(tag, "Status AFTER updating" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
         return mapper.writeValueAsString(status);
     }
 

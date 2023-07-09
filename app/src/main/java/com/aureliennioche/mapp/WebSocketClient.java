@@ -34,15 +34,11 @@ import okhttp3.WebSocketListener;
 import okio.ByteString;
 
 class WebSocketClient extends WebSocketListener {
-
     private static WebSocketClient instance;
-
     static final String TAG = "testing";
     static final long DEFAULT_SERVER_LAST_RECORD_TIMESTAMP_MILLISECOND = -1;
     static final long DEFAULT_SERVER_LAST_INTERACTION_TIMESTAMP_MILLISECOND = -1;
-
     private static final ObjectMapper mapper = new ObjectMapper();
-
     private WebSocket ws;
 
     // Interfaces to the database
@@ -52,9 +48,7 @@ class WebSocketClient extends WebSocketListener {
     ProfileDao profileDao;
     StatusDao statusDao;
     InteractionDao interactionDao;
-
     StepService stepService;
-
     long serverLastRecordTimestampMillisecond = DEFAULT_SERVER_LAST_RECORD_TIMESTAMP_MILLISECOND;
     long serverLastInteractionTimestampMillisecond = DEFAULT_SERVER_LAST_INTERACTION_TIMESTAMP_MILLISECOND;
 
@@ -186,7 +180,7 @@ class WebSocketClient extends WebSocketListener {
             return;
         }
 
-        if (isOpen()) {
+        if (isOpen() && ConfigAndroid.updateServer) {
 
             // Get last step records
             List<StepRecord> newRecord;
@@ -242,7 +236,7 @@ class WebSocketClient extends WebSocketListener {
             }
 
         } else {
-            Log.d(TAG, "Websocket not connected, I'll skip");
+            Log.d(TAG, "Websocket not connected or debug mode, I'll skip");
         }
     }
 
@@ -265,24 +259,32 @@ class WebSocketClient extends WebSocketListener {
 
         if (lr.ok) {
             String rewardListJson = lr.rewardList;
+            String statusJson = lr.status;
+            String stepRecordListJson = lr.stepRecordList;
             String username = lr.username;
             double chestAmount = lr.chestAmount;
             int dailyObjective = lr.dailyObjective;
 
-            Status s = new Status();
-
-            // Set up profile
-            if (profileDao.getRowCount() > 0) {
-                Log.d(TAG, "THIS SHOULD NOT HAPPEN");
-                s.error = "Profile already exists";
+            // Setup status
+            Status s;
+            if (ConfigAndroid.initWithStatus) {
+                s = mapper.readValue(statusJson,
+                        new TypeReference<Status>(){});
+            } else {
+                s = new Status();
             }
 
-            Profile p = new Profile();
-            p.username = username;
-            profileDao.insert(p);
+            // Set up record steps
+            if (ConfigAndroid.initWithStepRecords) {
+                List<StepRecord> stepRecords =
+                        mapper.readValue(stepRecordListJson,
+                                new TypeReference<List<StepRecord>>(){});
+                stepDao.insertIfNotExisting(stepRecords);
+            }
 
             // Set up rewards
-            List<Reward> rewards = mapper.readValue(rewardListJson, new TypeReference<List<Reward>>(){});
+            List<Reward> rewards = mapper.readValue(rewardListJson,
+                    new TypeReference<List<Reward>>(){});
             String tag =  rewardDao.generateStringTag();
             rewards.forEach(item -> {item.serverTag = tag; item.localTag = tag;});
 
@@ -298,6 +300,16 @@ class WebSocketClient extends WebSocketListener {
             s.dailyObjective = dailyObjective;
             s = statusDao.setRewardAttributes(s, r);
             s.stepNumber = stepDao.getStepNumberSinceMidnightThatDay(r.ts);
+
+            // Set up profile
+            if (profileDao.getRowCount() > 0) {
+                Log.d(TAG, "THIS SHOULD NOT HAPPEN");
+                s.error = "Profile already exists";
+            }
+
+            Profile p = new Profile();
+            p.username = username;
+            profileDao.insert(p);
 
             Log.d(tag, "Status at the INITIALIZATION " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
             statusDao.insert(s);

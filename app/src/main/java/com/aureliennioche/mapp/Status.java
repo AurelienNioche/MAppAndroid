@@ -26,7 +26,7 @@ public class Status {
     @PrimaryKey(autoGenerate = true)
     public int id;
     @ColumnInfo
-    public String state = WAITING_FOR_USER_TO_CASH_OUT;
+    public String state = EXPERIMENT_NOT_STARTED;
     @ColumnInfo
     public int dailyObjective = -1;
     @ColumnInfo

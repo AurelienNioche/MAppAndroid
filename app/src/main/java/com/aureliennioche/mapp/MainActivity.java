@@ -108,26 +108,35 @@ public class MainActivity extends AppCompatActivity {
             Log.d(tag, "Upgrade");
         }
 
+        // Get a reference to the db interface
+        MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
+
         // Only if upgrade or new install
-        if (ConfigAndroid.eraseTablesAfterInstallExceptSteps) {
+        if (ConfigAndroid.eraseRewardTableAfterUpdate) {
             Log.d(tag, "Deleting previously existing tables");
-            MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
-            StepDao stepDao = db.stepDao();
             RewardDao rewardDao = db.rewardDao();
-            ProfileDao profileDao = db.profileDao();
-            StatusDao statusDao = db.statusDao();
-            InteractionDao interactionDao = db.interactionDao();
-            // stepDao.nukeTable();
             rewardDao.nukeTable();
-            profileDao.nukeTable();
+        }
+        if (ConfigAndroid.eraseStepRecordTableAfterUpdate) {
+            StepDao stepDao = db.stepDao();
+            stepDao.nukeTable();
+        }
+        if (ConfigAndroid.eraseStatusTableAfterUpdate) {
+            StatusDao statusDao = db.statusDao();
             statusDao.nukeTable();
+        }
+        if (ConfigAndroid.eraseProfileTableAfterUpdate) {
+            ProfileDao profileDao = db.profileDao();
+            profileDao.nukeTable();
+        }
+        if (ConfigAndroid.eraseInteractionTableAfterUpdate) {
+            InteractionDao interactionDao = db.interactionDao();
             interactionDao.nukeTable();
         }
 
         // Update the shared preferences with the current version code
         prefs.edit().putString(PREF_VERSION_NAME_KEY, currentVersionCode).apply();
     }
-
 
     public void allPermissionsHaveBeenGranted() {
 

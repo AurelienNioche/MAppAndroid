@@ -6,6 +6,6 @@ public class ConfigUnity {
     @SuppressWarnings("unused")
     public double loadingViewDelayBeforeNextView = 0.5;
     @SuppressWarnings("unused")
-    public String loginInputFieldDefaultUsername = "smallobj"; // 25TI TODO: Be sure to put it to `""` for production
+    public String loginInputFieldDefaultUsername = ""; // 25TI TODO: Be sure to put it to `""` for production
     //TODO: Check as well the Android settings
 }

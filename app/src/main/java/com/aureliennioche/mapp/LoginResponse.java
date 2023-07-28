@@ -1,6 +1,7 @@
 package com.aureliennioche.mapp;
 
 public class LoginResponse {
+    @SuppressWarnings("unused")
     public String subject;
     public boolean ok;
     public int dailyObjective = -1;

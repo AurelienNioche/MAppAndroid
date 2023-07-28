@@ -1,6 +1,5 @@
 package com.aureliennioche.mapp;
 
-import android.os.Debug;
 import android.util.Log;
 
 import androidx.room.Dao;
@@ -14,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 @Dao
 public interface InteractionDao {
 
+    @SuppressWarnings("unused")
     @Query("SELECT * FROM interaction")
     List<Interaction> getAll();
 

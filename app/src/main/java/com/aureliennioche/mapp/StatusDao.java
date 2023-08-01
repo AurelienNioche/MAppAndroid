@@ -26,11 +26,11 @@ public interface StatusDao {
     @Query("DELETE FROM status")
     void nukeTable();
 
-    default Status setRewardAttributes(Status s, Reward r) {
+    default Status setRewardAttributes(Status s, Challenge r) {
 
-        DateTime dt = new DateTime(r.ts, DateTimeZone.getDefault());
+        DateTime dt = new DateTime(r.tsBegin, DateTimeZone.getDefault());
         s.rewardId = r.id;
-        s.objective = r.objective;
+        s.objective = r.stepGoal;
         s.startingAt = r.startingAt;
         s.amount = r.amount;
         s.dayOfTheWeek = dt.dayOfWeek().getAsText(Locale.ENGLISH);

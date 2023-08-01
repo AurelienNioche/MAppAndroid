@@ -44,7 +44,7 @@ class WebSocketClient extends WebSocketListener {
     // Interfaces to the database
     MAppDatabase db;
     StepDao stepDao;
-    RewardDao rewardDao;
+    ChallengeDao challengeDao;
     ProfileDao profileDao;
     StatusDao statusDao;
     InteractionDao interactionDao;
@@ -79,7 +79,7 @@ class WebSocketClient extends WebSocketListener {
 
         db = MAppDatabase.getInstance(stepService.getApplicationContext());
         stepDao = db.stepDao();
-        rewardDao = db.rewardDao();
+        challengeDao = db.rewardDao();
         profileDao = db.profileDao();
         statusDao = db.statusDao();
         interactionDao = db.interactionDao();
@@ -199,7 +199,7 @@ class WebSocketClient extends WebSocketListener {
             }
 
             // Get un-synchronized rewards;
-            List<Reward>  rewards = rewardDao.getUnSyncRewards();
+            List<Challenge> challenges = challengeDao.getUnsyncedChallenges();
 
             // Get username and status
             String username = profileDao.getUsername();
@@ -212,7 +212,7 @@ class WebSocketClient extends WebSocketListener {
             String interactionsJson;
             try {
                 recordsJson =  mapper.writeValueAsString(newRecord);
-                unSyncRewards = mapper.writeValueAsString(rewards);
+                unSyncRewards = mapper.writeValueAsString(challenges);
                 interactionsJson =  mapper.writeValueAsString(newInteractions);
                 statusJson = mapper.writeValueAsString(status);
             } catch (JsonProcessingException e) {
@@ -250,7 +250,7 @@ class WebSocketClient extends WebSocketListener {
         List<Integer> syncRewardsId = mapper.readValue(er.syncRewardsId, new TypeReference<List<Integer>>() {});
         List<String> syncRewardsServerTag = mapper.readValue(er.syncRewardsTag, new TypeReference<List<String>>() {});
 
-        rewardDao.updateServerTags(syncRewardsId, syncRewardsServerTag);
+        challengeDao.updateServerTags(syncRewardsId, syncRewardsServerTag);
     }
 
     public void handleLoginResponse(
@@ -283,23 +283,23 @@ class WebSocketClient extends WebSocketListener {
             }
 
             // Set up rewards
-            List<Reward> rewards = mapper.readValue(rewardListJson,
-                    new TypeReference<List<Reward>>(){});
-            String tag =  rewardDao.generateStringTag();
-            rewards.forEach(item -> {item.serverTag = tag; item.localTag = tag;});
+            List<Challenge> challenges = mapper.readValue(rewardListJson,
+                    new TypeReference<List<Challenge>>(){});
+            String tag =  challengeDao.generateStringTag();
+            challenges.forEach(item -> {item.serverTag = tag; item.localTag = tag;});
 
-            rewardDao.insertRewardsIfNotExisting(rewards);
+            challengeDao.insertChallengesIfNotExisting(challenges);
 
             Log.d(tag, "Rewards saved:");
-            rewardDao.getAll().forEach(item -> Log.d(tag, "reward id " + item.id + "tag " + item.serverTag));
+            challengeDao.getAll().forEach(item -> Log.d(tag, "reward id " + item.id + "tag " + item.serverTag));
 
-            Reward r = rewardDao.getFirstReward();
+            Challenge r = challengeDao.getFirstChallenge();
 
             s.state = EXPERIMENT_NOT_STARTED;
             s.chestAmount = chestAmount;
-            s.dailyObjective = dailyObjective;
+            s.stepDay = dailyObjective;
             s = statusDao.setRewardAttributes(s, r);
-            s.stepNumber = stepDao.getStepNumberSinceMidnightThatDay(r.ts);
+            s.stepNumber = stepDao.getStepNumberSinceMidnightThatDay(r.tsBegin);
 
             // Set up profile
             if (profileDao.getRowCount() > 0) {

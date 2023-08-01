@@ -9,26 +9,26 @@ import androidx.room.PrimaryKey;
 public class Status {
 
     @Ignore
-    public static final String WAITING_FOR_USER_TO_CASH_OUT = "waitingForUserToCashOut";
-    @Ignore
-    public static final String WAITING_FOR_USER_TO_REVEAL_NEW_REWARD = "waitingForUserToRevealNewReward";
-    @Ignore
     public static final String EXPERIMENT_NOT_STARTED = "experimentNotStarted";
     @Ignore
+    public static final String WAITING_FOR_NEXT_CHALLENGE_PROPOSAL = "waitingForNextChallengeProposal";
+    @Ignore
+    public static final String WAITING_FOR_USER_TO_ACCEPT = "waitingForUserToAccept";
+    @Ignore
+    public static final String WAITING_FOR_CHALLENGE_TO_START = "waitingForChallengeToStart";
+    @Ignore
+    public static final String ONGOING_CHALLENGE = "ongoingChallenge";
+    @Ignore
+    public static final String WAITING_FOR_USER_TO_CASH_OUT = "waitingForUserToCashOut";
+    @Ignore
     public static final String EXPERIMENT_ENDED_AND_ALL_CASH_OUT = "experimentEndedAndAllCashOut";
-    @Ignore
-    public static final String LAST_REWARD_OF_THE_DAY_AND_ALL_CASH_OUT = "lastRewardOfTheDayAndAllCashOut";
-    @Ignore
-    public static final String ONGOING_OBJECTIVE = "onGoingObjective";
-    @Ignore
-    public static final String EXPERIMENT_JUST_STARTED = "experimentJustStarted";
 
     @PrimaryKey(autoGenerate = true)
     public int id;
     @ColumnInfo
     public String state = EXPERIMENT_NOT_STARTED;
     @ColumnInfo
-    public int dailyObjective = -1;
+    public int stepDay = -1;
     @ColumnInfo
     public double chestAmount = -1;
     @ColumnInfo

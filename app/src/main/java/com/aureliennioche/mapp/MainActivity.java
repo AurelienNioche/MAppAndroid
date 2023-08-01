@@ -1,18 +1,15 @@
 package com.aureliennioche.mapp;
 
 import android.Manifest;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.StrictMode;
 import android.util.Log;
 import android.view.View;
 
@@ -22,8 +19,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import org.joda.time.DateTimeZone;
-
-import java.util.Objects;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -114,8 +109,8 @@ public class MainActivity extends AppCompatActivity {
         // Only if upgrade or new install
         if (ConfigAndroid.eraseRewardTableAfterUpdate) {
             Log.d(tag, "Deleting previously existing tables");
-            RewardDao rewardDao = db.rewardDao();
-            rewardDao.nukeTable();
+            ChallengeDao challengeDao = db.rewardDao();
+            challengeDao.nukeTable();
         }
         if (ConfigAndroid.eraseStepRecordTableAfterUpdate) {
             StepDao stepDao = db.stepDao();

@@ -9,7 +9,7 @@ import androidx.room.RoomDatabase;
 
 @Database(entities = {
         Status.class,
-        Reward.class,
+        Challenge.class,
         Profile.class,
         Interaction.class,
         StepRecord.class,
@@ -18,7 +18,7 @@ public abstract class MAppDatabase extends RoomDatabase {
     public abstract StatusDao statusDao();
     public abstract ProfileDao profileDao();
     public abstract StepDao stepDao();
-    public abstract RewardDao rewardDao();
+    public abstract ChallengeDao rewardDao();
     public abstract InteractionDao interactionDao();
 
     private static MAppDatabase instance;

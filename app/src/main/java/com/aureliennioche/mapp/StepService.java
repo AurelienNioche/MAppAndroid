@@ -12,7 +12,6 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
@@ -33,7 +32,7 @@ public class StepService extends Service implements SensorEventListener {
     // public boolean appVisibleOnScreen;
     SensorManager sensorManager;
     StepDao stepDao;
-    RewardDao rewardDao;
+    ChallengeDao challengeDao;
 
     WebSocketClient ws;
 
@@ -52,7 +51,7 @@ public class StepService extends Service implements SensorEventListener {
         Log.d(tag, "onStartCommand => Creating the service");
         MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
         stepDao = db.stepDao();
-        rewardDao = db.rewardDao();
+        challengeDao = db.rewardDao();
 
         ws = WebSocketClient.getInstance();
         ws.start(this);
@@ -144,7 +143,7 @@ public class StepService extends Service implements SensorEventListener {
         notificationManager.createNotificationChannel(channel);
     }
 
-    void sendNotificationObjectiveReached(Reward reward) {
+    void sendNotificationObjectiveReached(Challenge challenge) {
         // If the notification supports a direct reply action, use
         // PendingIntent.FLAG_MUTABLE instead.
         Intent notificationIntent = new Intent(this, MainUnityActivity.class)
@@ -152,7 +151,7 @@ public class StepService extends Service implements SensorEventListener {
 
         // Extra stuff for notifying the activity in case the user clicked on it
         notificationIntent.setAction(Intent.ACTION_SEND);  // DON'T REMOVE. NECESSARY FOR AN OBSCURE REASON
-        notificationIntent.putExtra("LAUNCHED_FROM_NOTIFICATION", reward.id);
+        notificationIntent.putExtra("LAUNCHED_FROM_NOTIFICATION", challenge.id);
 
         PendingIntent pendingIntent =
                 PendingIntent.getActivity(
@@ -161,8 +160,8 @@ public class StepService extends Service implements SensorEventListener {
                         notificationIntent,
                         PendingIntent.FLAG_IMMUTABLE);
 
-        String title = getString(R.string.notification_objective_reached_title, reward.amount, reward.objective - reward.startingAt);
-        String text = getString(R.string.notification_objective_reached_message, reward.objective);
+        String title = getString(R.string.notification_objective_reached_title, challenge.amount, challenge.stepGoal - challenge.startingAt);
+        String text = getString(R.string.notification_objective_reached_message, challenge.stepGoal);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_OBJ_REACHED_ID)
                 .setContentTitle(title)
@@ -174,7 +173,7 @@ public class StepService extends Service implements SensorEventListener {
         // .setTicker(getText(R.string.ticker_text))
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
-        int notificationId = reward.id;
+        int notificationId = challenge.id;
         // notificationId is a unique int for each notification that you must define
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             notificationManager.notify(notificationId, builder.build());
@@ -207,14 +206,14 @@ public class StepService extends Service implements SensorEventListener {
 
     void checkIfObjectiveIsReached(StepRecord rec) {
 
-        List<Reward> rewards = rewardDao.notFlaggedObjectiveReachedRewards(rec);
+        List<Challenge> challenges = challengeDao.notFlaggedObjectiveReachedChallenges(rec);
 
-        for (Reward rwd: rewards) {
+        for (Challenge rwd: challenges) {
 
             Log.d(tag, "objective reached");
 
             // Update reward's 'objectiveReached' flag
-            rewardDao.rewardObjectiveHasBeenReached(rwd, rec);
+            challengeDao.challengeObjectiveHasBeenReached(rwd, rec);
 
             // Send notification
             sendNotificationObjectiveReached(rwd);

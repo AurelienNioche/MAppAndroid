@@ -20,24 +20,20 @@ public interface StepDao {
     @Ignore
     String tag = "testing";
 
-    @Query("SELECT * FROM step_record WHERE ts > :ref ORDER BY ts ASC")
-    List<StepRecord> getRecordsNewerThan(long ref);
+    @Query("SELECT * FROM step WHERE ts > :ref ORDER BY ts ASC")
+    List<Step> getRecordsNewerThan(long ref);
 
-    @Query("SELECT * FROM step_record WHERE ts = (SELECT MAX(ts) FROM step_record)")
-    List<StepRecord> getLastRecord();
+    @Query("SELECT * FROM step WHERE ts = (SELECT MAX(ts) FROM step)")
+    List<Step> getLastRecord();
 
     // Return a list of zero or one element
-    @Query("SELECT * FROM step_record WHERE ts = (SELECT MAX(ts) FROM step_record WHERE ts >= :lowerBound AND ts < :upperBound)")
-    List<StepRecord> getLastRecordOnInterval(long lowerBound, long upperBound);
+    @Query("SELECT * FROM step WHERE ts = (SELECT MAX(ts) FROM step WHERE ts >= :lowerBound AND ts < :upperBound)")
+    List<Step> getLastRecordOnInterval(long lowerBound, long upperBound);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(StepRecord stepRecord);
+    void insert(Step step);
 
-    @Query("DELETE FROM step_record WHERE ts >= :lowerBound AND ts < :upperBound " +
-            "AND stepMidnight % 100 != 0")  // We don't want to erase when 100's are reached so, we know when the goal was reached
-    void deleteRecordsOnInterval(long lowerBound, long upperBound);
-
-    @Query("DELETE FROM step_record WHERE ts < :bound")
+    @Query("DELETE FROM Step WHERE ts < :bound")
     void deleteRecordsOlderThan(long bound);
 
     default int getStepNumberSinceMidnightThatDay(long timestamp) {
@@ -49,7 +45,7 @@ public interface StepDao {
         long midnightTimestamp = midnight.getMillis();
         long nextMidnightTimestamp = nextMidnight.getMillis();
 
-        List<StepRecord> records = getLastRecordOnInterval(
+        List<Step> records = getLastRecordOnInterval(
                 midnightTimestamp,
                 nextMidnightTimestamp);
         int stepNumber = 0;
@@ -59,7 +55,7 @@ public interface StepDao {
         return stepNumber;
     }
 
-    default StepRecord recordNewSensorValue(
+    default Step recordNewSensorValue(
             int sensorValue) {
 
         long timestamp = System.currentTimeMillis();
@@ -69,10 +65,10 @@ public interface StepDao {
 
         int stepNumberSinceMidnight = 0; // Default if no recording, or no recording that day
 
-        List<StepRecord> records = getLastRecord();
+        List<Step> records = getLastRecord();
         // If there is some record
         if (records.size() > 0) {
-            StepRecord ref = records.get(0);
+            Step ref = records.get(0);
             // If there is some record /for today/
             if (ref.ts > dayBegins) {
                 // If phone has been reboot in the between (leave some error margin),
@@ -91,7 +87,7 @@ public interface StepDao {
         }
 
         // Create new record
-        StepRecord rec = new StepRecord();
+        Step rec = new Step();
         rec.ts = timestamp;
         rec.tsLastBoot = lastBootTimestamp;
         rec.stepLastBoot = sensorValue;
@@ -114,12 +110,12 @@ public interface StepDao {
         return rec;
     }
 
-    @Query("SELECT * FROM step_record")
-    List<StepRecord> getAll();
+    @Query("SELECT * FROM Step")
+    List<Step> getAll();
 
-    @Query("DELETE FROM step_record")
+    @Query("DELETE FROM Step")
     void nukeTable();
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    void insertIfNotExisting(List<StepRecord> stepRecords);
+    void insertIfNotExisting(List<Step> steps);
 }

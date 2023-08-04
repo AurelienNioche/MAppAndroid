@@ -12,7 +12,7 @@ import androidx.room.RoomDatabase;
         Challenge.class,
         Profile.class,
         Interaction.class,
-        StepRecord.class,
+        Step.class,
 }, version = 1)
 public abstract class MAppDatabase extends RoomDatabase {
     public abstract StatusDao statusDao();

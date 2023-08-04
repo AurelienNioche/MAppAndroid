@@ -5,6 +5,9 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity(tableName = "status")
 public class Status {
 
@@ -28,9 +31,9 @@ public class Status {
     @ColumnInfo
     public String state = EXPERIMENT_NOT_STARTED;
     @ColumnInfo
-    public int stepDay = -1;
-    @ColumnInfo
     public double chestAmount = -1;
+    @ColumnInfo
+    public int stepDay = -1;
     @ColumnInfo
     public String dayOfTheWeek = "dayOfTheWeek";
     @ColumnInfo
@@ -38,15 +41,12 @@ public class Status {
     @ColumnInfo
     public String month = "month";
     @ColumnInfo
-    public int stepNumber = -1;
-    @ColumnInfo
-    public int rewardId = -1;
-    @ColumnInfo
-    public int objective = -1;
-    @ColumnInfo
-    public int startingAt = -1;
-    @ColumnInfo
-    public double amount = -1;
-    @ColumnInfo
     public String error = "";
+    @ColumnInfo
+    public int currentChallenge = 0;
+    @ColumnInfo
+    public long time;
+
+    @Ignore
+    List<Challenge> challenges = new ArrayList<>();
 }

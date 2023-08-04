@@ -23,5 +23,5 @@ public class ConfigAndroid {
     static final boolean eraseStepRecordTableAfterUpdate = true; //TODO: Be sure to set that correctly for production
     static final boolean eraseStatusTableAfterUpdate = true; //TODO: Be sure to set that correctly for production
     static final boolean eraseInteractionTableAfterUpdate = true; //TODO: Be sure to set that correctly for production
-    public static Object maxChallengesPerDay = 3;
+    public static int maxChallengesPerDay = 3;
 }

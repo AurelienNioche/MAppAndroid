@@ -51,17 +51,17 @@ public interface ChallengeDao {
     @Query("SELECT * FROM Challenge WHERE tsBegin >= :dayBegins AND tsBegin < :dayEnds AND objectiveReached = 0 AND stepGoal <= :stepNumber ORDER BY stepGoal")
     List<Challenge> notFlaggedObjectiveReachedChallenges(int stepNumber, long dayBegins, long dayEnds);
 
-    default List<Challenge> notFlaggedObjectiveReachedChallenges(StepRecord step) {
+    default List<Challenge> notFlaggedObjectiveReachedChallenges(Step step) {
         long dayBegins = new DateTime(step.ts, MainActivity.tz).withTimeAtStartOfDay().getMillis();
         long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
         return notFlaggedObjectiveReachedChallenges(step.stepMidnight, dayBegins, dayEnds);
     }
 
-    @Query("SELECT * FROM Challenge WHERE objectiveReached = 1 AND cashedOut = 0 ORDER BY tsBegin, stepGoal")
+    @Query("SELECT * FROM Challenge WHERE objectiveReached = 1 AND cashedOut = 0 ORDER BY tsAcceptBegin")
     List<Challenge> challengesThatNeedCashOut();
 
-    @Query("SELECT * FROM Challenge WHERE objectiveReached = 0 AND tsBegin >= :dayBegins AND tsBegin < :dayEnds ORDER BY stepGoal")
-    List<Challenge> nextPossibleChallenge(long dayBegins, long dayEnds);
+    @Query("SELECT * FROM Challenge WHERE tsBegin >= :dayBegins AND tsBegin < :dayEnds ORDER BY tsAcceptBegin")
+    List<Challenge> dayChallenges(long dayBegins, long dayEnds);
 
     @Query("UPDATE Challenge SET cashedOut = 1, cashedOutTs = :ts, localTag = :uuid WHERE id = :rewardId")
     void challengeHasBeenCashedOut(int rewardId, long ts, String uuid);
@@ -81,7 +81,7 @@ public interface ChallengeDao {
     @Query("UPDATE Challenge SET objectiveReached = 1, objectiveReachedTs = :ts, localTag = :uuid WHERE id = :rewardId")
     void challengeObjectiveHasBeenReached(int rewardId, long ts, String uuid);
 
-    default void challengeObjectiveHasBeenReached(Challenge challenge, StepRecord step) {
+    default void challengeObjectiveHasBeenReached(Challenge challenge, Step step) {
         challengeObjectiveHasBeenReached(challenge.id, step.ts, generateStringTag());
     }
 

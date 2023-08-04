@@ -21,7 +21,10 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import org.joda.time.DateTime;
+
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class StepService extends Service implements SensorEventListener {
     private static final int ONGOING_NOTIFICATION_ID = -1;
@@ -160,8 +163,8 @@ public class StepService extends Service implements SensorEventListener {
                         notificationIntent,
                         PendingIntent.FLAG_IMMUTABLE);
 
-        String title = getString(R.string.notification_objective_reached_title, challenge.amount, challenge.stepGoal - challenge.startingAt);
-        String text = getString(R.string.notification_objective_reached_message, challenge.stepGoal);
+        String title = getString(R.string.notification_objective_reached_title, challenge.amount);
+        String text = getString(R.string.notification_objective_reached_message);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_OBJ_REACHED_ID)
                 .setContentTitle(title)
@@ -186,7 +189,7 @@ public class StepService extends Service implements SensorEventListener {
     public void onSensorChanged(SensorEvent sensorEvent) {
         int sensorValue = (int) sensorEvent.values[0];
         Log.d(tag, "onSensorChanged: " + sensorValue);
-        StepRecord rec = stepDao.recordNewSensorValue(sensorValue);
+        Step rec = stepDao.recordNewSensorValue(sensorValue);
         checkIfObjectiveIsReached(rec);
     }
 
@@ -204,19 +207,51 @@ public class StepService extends Service implements SensorEventListener {
         Log.d(tag, "initSensorManager => Sensor manager initialized");
     }
 
-    void checkIfObjectiveIsReached(StepRecord rec) {
+    void checkIfObjectiveIsReached(Step rec) {
 
-        List<Challenge> challenges = challengeDao.notFlaggedObjectiveReachedChallenges(rec);
+        long tsNow = System.currentTimeMillis();
+        long dayBegins = new DateTime(tsNow, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
 
-        for (Challenge rwd: challenges) {
+        List<Challenge> challenges = challengeDao.dayChallenges(dayBegins, dayEnds);
+
+        for (Challenge c: challenges) {
+
+            if (c.objectiveReached) {
+                Log.d(tag, "objective already reached");
+                continue;
+            }
+
+            if (!c.accepted) {
+                Log.d(tag, "challenge not accepted");
+                continue;
+            }
+
+            if (!(rec.ts > c.tsBegin && rec.ts < c.tsEnd)) {
+                Log.d(tag, "challenge not active");
+                continue;
+            }
+
+            int nStepBefore = 0;
+            List<Step> stepBeforeChallenge  = stepDao.getLastRecordOnInterval(dayBegins, c.tsBegin);
+            if (stepBeforeChallenge.size() > 0) {
+                nStepBefore = stepBeforeChallenge.get(0).stepMidnight;
+            }
+
+            int nStep = rec.stepMidnight - nStepBefore;
+
+            if (nStep < c.stepGoal) {
+                Log.d(tag, "not enough steps");
+                continue;
+            }
 
             Log.d(tag, "objective reached");
 
             // Update reward's 'objectiveReached' flag
-            challengeDao.challengeObjectiveHasBeenReached(rwd, rec);
+            challengeDao.challengeObjectiveHasBeenReached(c, rec);
 
             // Send notification
-            sendNotificationObjectiveReached(rwd);
+            sendNotificationObjectiveReached(c);
         }
     }
 }

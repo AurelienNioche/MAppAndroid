@@ -183,7 +183,7 @@ class WebSocketClient extends WebSocketListener {
         if (isOpen() && ConfigAndroid.updateServer) {
 
             // Get last step records
-            List<StepRecord> newRecord;
+            List<Step> newRecord;
             if (serverLastRecordTimestampMillisecond == DEFAULT_SERVER_LAST_RECORD_TIMESTAMP_MILLISECOND) {
                 newRecord = new ArrayList<>();
             } else {
@@ -276,10 +276,10 @@ class WebSocketClient extends WebSocketListener {
 
             // Set up record steps
             if (ConfigAndroid.initWithStepRecords) {
-                List<StepRecord> stepRecords =
+                List<Step> steps =
                         mapper.readValue(stepRecordListJson,
-                                new TypeReference<List<StepRecord>>(){});
-                stepDao.insertIfNotExisting(stepRecords);
+                                new TypeReference<List<Step>>(){});
+                stepDao.insertIfNotExisting(steps);
             }
 
             // Set up rewards
@@ -299,7 +299,7 @@ class WebSocketClient extends WebSocketListener {
             s.chestAmount = chestAmount;
             s.stepDay = dailyObjective;
             s = statusDao.setRewardAttributes(s, r);
-            s.stepNumber = stepDao.getStepNumberSinceMidnightThatDay(r.tsBegin);
+            s.stepDay = stepDao.getStepNumberSinceMidnightThatDay(r.tsBegin);
 
             // Set up profile
             if (profileDao.getRowCount() > 0) {

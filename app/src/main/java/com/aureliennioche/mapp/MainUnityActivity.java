@@ -183,7 +183,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
         }
 
         status.challenges = challengeDao.dayChallenges(dayBegins, dayEnds);
-        Challenge challenge;
+        Challenge challenge = null;
         if (!experimentEnded) {
             challenge = status.challenges.get(status.currentChallenge);
         }
@@ -222,6 +222,11 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 }
 
             case WAITING_FOR_USER_TO_ACCEPT:
+                if (challenge == null) {
+                    status.error = "Unexpected error (null value for challenge)!";
+                    Log.d(tag, "MainUnityActivity => Challenge is null, this shouldn't happen");
+                    break;
+                }
                 boolean buttonAction = Objects.equals(userAction, USER_ACTION_REVEAL_NEXT_REWARD);
                 if (tsNow > challenge.tsAcceptEnd) {
                     Log.d(tag, "MainUnityActivity => User missed the acceptance window");
@@ -235,6 +240,11 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 break;
 
             case WAITING_FOR_CHALLENGE_TO_START:
+                if (challenge == null) {
+                    status.error = "Unexpected error (null value for challenge)!";
+                    Log.d(tag, "MainUnityActivity => Challenge is null, this shouldn't happen");
+                    break;
+                }
                 if(tsNow < challenge.tsBegin) {
                     Log.d(tag, "MainUnityActivity => Still waiting for challenge to start");
                 } else if (tsNow < challenge.tsEnd) {
@@ -249,6 +259,11 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 break;
 
             case ONGOING_CHALLENGE:
+                if (challenge == null) {
+                    status.error = "Unexpected error (null value for challenge)!";
+                    Log.d(tag, "MainUnityActivity => Challenge is null, this shouldn't happen");
+                    break;
+                }
                 // Check that the objective has not been reached
                 if (challenge.objectiveReached) {
                     status.state = WAITING_FOR_USER_TO_CASH_OUT;
@@ -348,9 +363,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
         registerReceiver(receiver, filter);
     }
 
-    // --------------------------------------
-
-    // -------------------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
 
     @Override
     protected void onDestroy() {

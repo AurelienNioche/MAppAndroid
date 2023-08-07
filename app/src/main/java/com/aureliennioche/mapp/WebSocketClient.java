@@ -4,6 +4,7 @@ package com.aureliennioche.mapp;
 
 import static com.aureliennioche.mapp.Status.EXPERIMENT_NOT_STARTED;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -260,7 +261,7 @@ class WebSocketClient extends WebSocketListener {
         if (lr.ok) {
             String rewardListJson = lr.rewardList;
             String statusJson = lr.status;
-            String stepRecordListJson = lr.stepRecordList;
+            String stepRecordListJson = lr.stepList;
             String username = lr.username;
             double chestAmount = lr.chestAmount;
             int dailyObjective = lr.dailyObjective;
@@ -298,7 +299,6 @@ class WebSocketClient extends WebSocketListener {
             s.state = EXPERIMENT_NOT_STARTED;
             s.chestAmount = chestAmount;
             s.stepDay = dailyObjective;
-            s = statusDao.setRewardAttributes(s, r);
             s.stepDay = stepDao.getStepNumberSinceMidnightThatDay(r.tsBegin);
 
             // Set up profile
@@ -318,6 +318,7 @@ class WebSocketClient extends WebSocketListener {
         broadcastLoginInfo(lr);
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     public void setupBroadcasterReceiver() {
         IntentFilter filter = new IntentFilter("WEBSOCKET_SEND");
 

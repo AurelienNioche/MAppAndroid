@@ -16,7 +16,7 @@ rootProject.name = "MApp"
 include ':app'
 include ':unityLibrary'
 
-project(':unityLibrary').projectDir=new File('/Users/aureliennioche/Documents/UnityProjects/MApp/Builds/unityLibrary')
+project(':unityLibrary').projectDir=new File('/Users/aureliennioche/Documents/UnityProjects/MAppActiveInference/Builds/unityLibrary')
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)

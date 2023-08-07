@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "593a0b49b4d04d2cd37834f271406fdf",
+    "identityHash": "5c45f21ca4a6a6addf824b859342e76e",
     "entities": [
       {
         "tableName": "status",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `state` TEXT, `dailyObjective` INTEGER NOT NULL, `chestAmount` REAL NOT NULL, `dayOfTheWeek` TEXT, `dayOfTheMonth` TEXT, `month` TEXT, `stepNumber` INTEGER NOT NULL, `rewardId` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `startingAt` INTEGER NOT NULL, `amount` REAL NOT NULL, `error` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `state` TEXT, `chestAmount` REAL NOT NULL, `stepDay` INTEGER NOT NULL, `dayOfTheWeek` TEXT, `dayOfTheMonth` TEXT, `month` TEXT, `error` TEXT, `currentChallenge` INTEGER NOT NULL, `time` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -21,15 +21,15 @@
             "notNull": false
           },
           {
-            "fieldPath": "dailyObjective",
-            "columnName": "dailyObjective",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
             "fieldPath": "chestAmount",
             "columnName": "chestAmount",
             "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stepDay",
+            "columnName": "stepDay",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -51,40 +51,22 @@
             "notNull": false
           },
           {
-            "fieldPath": "stepNumber",
-            "columnName": "stepNumber",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "rewardId",
-            "columnName": "rewardId",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "objective",
-            "columnName": "objective",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "startingAt",
-            "columnName": "startingAt",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "amount",
-            "columnName": "amount",
-            "affinity": "REAL",
-            "notNull": true
-          },
-          {
             "fieldPath": "error",
             "columnName": "error",
             "affinity": "TEXT",
             "notNull": false
+          },
+          {
+            "fieldPath": "currentChallenge",
+            "columnName": "currentChallenge",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "time",
+            "columnName": "time",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -97,8 +79,8 @@
         "foreignKeys": []
       },
       {
-        "tableName": "reward",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ts` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `startingAt` INTEGER NOT NULL, `amount` REAL NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `revealedByNotification` INTEGER NOT NULL, `revealedByButton` INTEGER NOT NULL, `revealedTs` INTEGER NOT NULL, `serverTag` TEXT, `localTag` TEXT)",
+        "tableName": "challenge",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tsBegin` INTEGER NOT NULL, `tsEnd` INTEGER NOT NULL, `tsAcceptBegin` INTEGER NOT NULL, `tsAcceptEnd` INTEGER NOT NULL, `stepGoal` INTEGER NOT NULL, `stepCount` INTEGER NOT NULL, `amount` REAL NOT NULL, `accepted` INTEGER NOT NULL, `acceptedTs` INTEGER NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `serverTag` TEXT, `localTag` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -107,20 +89,38 @@
             "notNull": true
           },
           {
-            "fieldPath": "ts",
-            "columnName": "ts",
+            "fieldPath": "tsBegin",
+            "columnName": "tsBegin",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "objective",
-            "columnName": "objective",
+            "fieldPath": "tsEnd",
+            "columnName": "tsEnd",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "startingAt",
-            "columnName": "startingAt",
+            "fieldPath": "tsAcceptBegin",
+            "columnName": "tsAcceptBegin",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tsAcceptEnd",
+            "columnName": "tsAcceptEnd",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stepGoal",
+            "columnName": "stepGoal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stepCount",
+            "columnName": "stepCount",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -128,6 +128,18 @@
             "fieldPath": "amount",
             "columnName": "amount",
             "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accepted",
+            "columnName": "accepted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "acceptedTs",
+            "columnName": "acceptedTs",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -151,24 +163,6 @@
           {
             "fieldPath": "cashedOutTs",
             "columnName": "cashedOutTs",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "revealedByNotification",
-            "columnName": "revealedByNotification",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "revealedByButton",
-            "columnName": "revealedByButton",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "revealedTs",
-            "columnName": "revealedTs",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -253,7 +247,7 @@
         "foreignKeys": []
       },
       {
-        "tableName": "step_record",
+        "tableName": "step",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ts` INTEGER NOT NULL, `tsLastBoot` INTEGER NOT NULL, `stepLastBoot` INTEGER NOT NULL, `stepMidnight` INTEGER NOT NULL)",
         "fields": [
           {
@@ -300,7 +294,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '593a0b49b4d04d2cd37834f271406fdf')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5c45f21ca4a6a6addf824b859342e76e')"
     ]
   }
 }

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "5c45f21ca4a6a6addf824b859342e76e",
+    "identityHash": "7755257cedc3c9e4f901ce994116c128",
     "entities": [
       {
         "tableName": "status",
@@ -80,7 +80,7 @@
       },
       {
         "tableName": "challenge",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tsBegin` INTEGER NOT NULL, `tsEnd` INTEGER NOT NULL, `tsAcceptBegin` INTEGER NOT NULL, `tsAcceptEnd` INTEGER NOT NULL, `stepGoal` INTEGER NOT NULL, `stepCount` INTEGER NOT NULL, `amount` REAL NOT NULL, `accepted` INTEGER NOT NULL, `acceptedTs` INTEGER NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `serverTag` TEXT, `localTag` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tsBegin` INTEGER NOT NULL, `tsEnd` INTEGER NOT NULL, `tsAcceptBegin` INTEGER NOT NULL, `tsAcceptEnd` INTEGER NOT NULL, `stepGoal` INTEGER NOT NULL, `stepCount` INTEGER NOT NULL, `amount` REAL NOT NULL, `accepted` INTEGER NOT NULL, `acceptedTs` INTEGER NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `serverTag` TEXT, `androidTag` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -173,8 +173,8 @@
             "notNull": false
           },
           {
-            "fieldPath": "localTag",
-            "columnName": "localTag",
+            "fieldPath": "androidTag",
+            "columnName": "androidTag",
             "affinity": "TEXT",
             "notNull": false
           }
@@ -294,7 +294,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5c45f21ca4a6a6addf824b859342e76e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7755257cedc3c9e4f901ce994116c128')"
     ]
   }
 }

@@ -258,8 +258,11 @@ class WebSocketClient extends WebSocketListener {
             LoginResponse lr
     ) throws JsonProcessingException {
 
+        Log.d("testing", "handleLoginResponse");
+
         if (lr.ok) {
-            String rewardListJson = lr.rewardList;
+            Log.d("testing", "handleLoginResponse ok");
+            String rewardListJson = lr.challengeList;
             String statusJson = lr.status;
             String stepRecordListJson = lr.stepList;
             String username = lr.username;
@@ -269,12 +272,17 @@ class WebSocketClient extends WebSocketListener {
             // Setup status
             Status s;
             if (ConfigAndroid.initWithStatus) {
+                Log.d("testing", "handleLoginResponse initWithStatus");
                 s = mapper.readValue(statusJson,
                         new TypeReference<Status>(){});
             } else {
+                Log.d(TAG, "handleLoginResponse NOT initWithStatus");
                 s = new Status();
             }
 
+            Log.d("testing", "handleLoginResponse status: " + s);
+
+            Log.d("testing", "handleLoginResponse insert steps");
             // Set up record steps
             if (ConfigAndroid.initWithStepRecords) {
                 List<Step> steps =
@@ -283,15 +291,16 @@ class WebSocketClient extends WebSocketListener {
                 stepDao.insertIfNotExisting(steps);
             }
 
-            // Set up rewards
+            Log.d("testing", "handleLoginResponse setup challenges");
+            // Set up challenges
             List<Challenge> challenges = mapper.readValue(rewardListJson,
                     new TypeReference<List<Challenge>>(){});
             String tag =  challengeDao.generateStringTag();
-            challenges.forEach(item -> {item.serverTag = tag; item.localTag = tag;});
+            challenges.forEach(item -> {item.serverTag = tag; item.androidTag = tag;});
 
             challengeDao.insertChallengesIfNotExisting(challenges);
 
-            Log.d(tag, "Rewards saved:");
+            Log.d("testing", "Challenges saved:");
             challengeDao.getAll().forEach(item -> Log.d(tag, "reward id " + item.id + "tag " + item.serverTag));
 
             Challenge r = challengeDao.getFirstChallenge();
@@ -315,6 +324,7 @@ class WebSocketClient extends WebSocketListener {
             statusDao.insert(s);
         }
 
+        Log.d("testing", "handleLoginResponse broadcastLoginInfo");
         broadcastLoginInfo(lr);
     }
 

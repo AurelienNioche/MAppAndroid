@@ -2,10 +2,10 @@ package com.aureliennioche.mapp;
 
 public class ConfigUnity {
     @SuppressWarnings("unused")
-    public double androidUpdateFrequencySeconds = 1; // TODO: Check that it is set to 1
+    public double androidUpdateFrequencySeconds = 30; // TODO: Check that it is set to 1
     @SuppressWarnings("unused")
     public double loadingViewDelayBeforeNextView = 0.5;
     @SuppressWarnings("unused")
-    public String loginInputFieldDefaultUsername = ""; // 25TI TODO: Be sure to put it to `""` for production
-    //TODO: Check as well the Android settings
+    public String loginInputFieldDefaultUsername = "123test";  // TODO: Be sure to put it to `""` for production
+    //TODO: Check as well the `ConfigAndroid` settings
 }

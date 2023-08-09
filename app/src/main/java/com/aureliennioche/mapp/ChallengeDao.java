@@ -27,7 +27,7 @@ public interface ChallengeDao {
     @Query("SELECT * FROM Challenge ORDER BY tsBegin, stepGoal LIMIT 1")
     Challenge getFirstChallenge();
 
-    @Query("SELECT * FROM Challenge WHERE serverTag != localTag")
+    @Query("SELECT * FROM Challenge WHERE serverTag != androidTag")
     List<Challenge> getUnsyncedChallenges();
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -63,23 +63,23 @@ public interface ChallengeDao {
     @Query("SELECT * FROM Challenge WHERE tsBegin >= :dayBegins AND tsBegin < :dayEnds ORDER BY tsAcceptBegin")
     List<Challenge> dayChallenges(long dayBegins, long dayEnds);
 
-    @Query("UPDATE Challenge SET cashedOut = 1, cashedOutTs = :ts, localTag = :uuid WHERE id = :rewardId")
-    void challengeHasBeenCashedOut(int rewardId, long ts, String uuid);
+    @Query("UPDATE Challenge SET cashedOut = 1, cashedOutTs = :ts, androidTag = :uuid WHERE id = :challengeId")
+    void challengeHasBeenCashedOut(int challengeId, long ts, String uuid);
 
     default void challengeHasBeenCashedOut(Challenge challenge) {
         long cashedOutTs = System.currentTimeMillis();;
         challengeHasBeenCashedOut(challenge.id, cashedOutTs, generateStringTag());
     }
 
-    @Query("UPDATE Challenge SET acceptedTs = :ts, localTag = :uuid WHERE id = :rewardId")
-    void challengeHasBeenAccepted(int rewardId, long ts, String uuid);
+    @Query("UPDATE Challenge SET acceptedTs = :ts, androidTag = :uuid WHERE id = :challengeId")
+    void challengeHasBeenAccepted(int challengeId, long ts, String uuid);
 
     default void challengeHasBeenAccepted(Challenge challenge) {
         challengeHasBeenAccepted(challenge.id, System.currentTimeMillis(), generateStringTag());
     }
 
-    @Query("UPDATE Challenge SET objectiveReached = 1, objectiveReachedTs = :ts, localTag = :uuid WHERE id = :rewardId")
-    void challengeObjectiveHasBeenReached(int rewardId, long ts, String uuid);
+    @Query("UPDATE Challenge SET objectiveReached = 1, objectiveReachedTs = :ts, androidTag = :uuid WHERE id = :challengeId")
+    void challengeObjectiveHasBeenReached(int challengeId, long ts, String uuid);
 
     default void challengeObjectiveHasBeenReached(Challenge challenge, Step step) {
         challengeObjectiveHasBeenReached(challenge.id, step.ts, generateStringTag());

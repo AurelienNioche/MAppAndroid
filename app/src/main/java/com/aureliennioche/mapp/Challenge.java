@@ -4,6 +4,9 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Entity(tableName = "challenge")
 public class Challenge {
     @PrimaryKey(autoGenerate = true)
@@ -37,5 +40,5 @@ public class Challenge {
     @ColumnInfo()
     public String serverTag;
     @ColumnInfo
-    public String localTag;
+    public String androidTag;
 }

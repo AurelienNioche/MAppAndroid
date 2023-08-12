@@ -48,7 +48,7 @@ public class Status {
     @ColumnInfo
     public int currentChallenge = 0;
     @ColumnInfo
-    public long time;
+    public long ts;
 
     @Ignore
     List<Challenge> challenges = new ArrayList<>();

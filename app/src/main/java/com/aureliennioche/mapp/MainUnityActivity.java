@@ -156,12 +156,12 @@ public class MainUnityActivity extends UnityPlayerActivity {
         }
         // User still needs to wait
         Log.d(tag, "MainUnityActivity => Experiment not started yet");
-        status.time = tsNow / 1000;
+        status.ts = tsNow;
     }
 
     void ifExperimentEnded(Status status) {
         status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
-        status.time = System.currentTimeMillis() / 1000;
+        status.ts = System.currentTimeMillis();
     }
 
     void ifWaitingForUserToCashOut(Status status, String userAction) {
@@ -220,7 +220,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
             }
         }
         status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
-        status.time = System.currentTimeMillis() / 1000;
+        status.ts = System.currentTimeMillis();
         Log.d(tag, "MainUnityActivity => Still waiting for next challenge proposal");
     }
 
@@ -260,7 +260,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         long tsNow = System.currentTimeMillis();
         long dayBegin = getBeginningOfTheDay();
-        boolean dayChanged = status.time * 1000 < dayBegin;
+        boolean dayChanged = status.ts < dayBegin;
         if (dayChanged) {
             status.currentChallenge = 0;
         } else {
@@ -268,7 +268,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 status.currentChallenge++;
             }
         }
-        status.time = tsNow / 1000;
+        status.ts = tsNow;
         long dayBegins = new DateTime(tsNow, MainActivity.tz).withTimeAtStartOfDay().getMillis();
         long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
         long tsExpEnds = challengeDao.getTsExpEnds();
@@ -301,7 +301,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         status.state = ONGOING_CHALLENGE;
 
-        long refTs = status.time * 1000;
+        long refTs = status.ts;
         long dayBegins = new DateTime(refTs, MainActivity.tz).withTimeAtStartOfDay().getMillis();
         long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
 
@@ -319,7 +319,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
             ifWaitingForChallengeToStart(status);
         } else {
             // User is still in the challenge
-            status.time = tsNow / 1000;
+            status.ts = tsNow;
         }
     }
 
@@ -372,18 +372,22 @@ public class MainUnityActivity extends UnityPlayerActivity {
         }
 
         // Set the date
-        DateTime now = new DateTime(status.time * 1000, MainActivity.tz);  // Convert to milliseconds
+        DateTime now = new DateTime(status.ts, MainActivity.tz);  // Convert to milliseconds
         status.stepDay = stepDao.getStepNumberSinceMidnightThatDay(now.getMillis());
         status.dayOfTheWeek = now.dayOfWeek().getAsText(Locale.ENGLISH);
         status.dayOfTheMonth = now.dayOfMonth().getAsText(Locale.ENGLISH);
         status.month = now.monthOfYear().getAsText(Locale.ENGLISH);
 
+        // Save the status
+        statusDao.update(status);
+
+        // Add extra information for Unity
         // Set the challenges (using `now` as the reference date)
         status.challenges = challengeDao.dayChallenges(
                 now.withTimeAtStartOfDay().getMillis(),
                 now.withTimeAtStartOfDay().getMillis() + TimeUnit.DAYS.toMillis(1));
-
-        statusDao.update(status);
+        // Set the time in Unity system
+        status.ts = status.ts / 1000;
 
         Log.d(tag, "Status AFTER updating" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
         return mapper.writeValueAsString(status);

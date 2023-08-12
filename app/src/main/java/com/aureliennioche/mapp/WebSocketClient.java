@@ -22,8 +22,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.joda.time.DateTime;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -227,7 +230,7 @@ class WebSocketClient extends WebSocketListener {
             er.interactions = interactionsJson;
             er.records = recordsJson;
             er.status = statusJson;
-            er.unSyncRewards = unSyncRewards;
+            er.unsyncedChallenges = unSyncRewards;
 
             try {
                 String requestJson =  mapper.writeValueAsString(er);
@@ -266,8 +269,6 @@ class WebSocketClient extends WebSocketListener {
             String statusJson = lr.status;
             String stepRecordListJson = lr.stepList;
             String username = lr.username;
-            double chestAmount = lr.chestAmount;
-            int dailyObjective = lr.dailyObjective;
 
             // Setup status
             Status s;
@@ -289,6 +290,8 @@ class WebSocketClient extends WebSocketListener {
                         mapper.readValue(stepRecordListJson,
                                 new TypeReference<List<Step>>(){});
                 stepDao.insertIfNotExisting(steps);
+
+                Log.d("testing", "handleLoginResponse steps inserted: " + steps.size());
             }
 
             Log.d("testing", "handleLoginResponse setup challenges");
@@ -300,15 +303,25 @@ class WebSocketClient extends WebSocketListener {
 
             challengeDao.insertChallengesIfNotExisting(challenges);
 
+            Log.d("testing", "handleLoginResponse number of challenges:" + challenges.size());
+
             Log.d("testing", "Challenges saved:");
-            challengeDao.getAll().forEach(item -> Log.d(tag, "reward id " + item.id + "tag " + item.serverTag));
+            challengeDao.getAll().forEach(item -> {
+                Log.d("testing", "id " + item.id + " tag " + item.serverTag);
+                Log.d("testing", "begin " + new DateTime(item.tsOfferBegin).toString());
+            });
+
+            Log.d("testing", "handleLoginResponse number of challenges from db:" + challengeDao.getAll().size());
 
             Challenge r = challengeDao.getFirstChallenge();
 
             s.state = EXPERIMENT_NOT_STARTED;
-            s.chestAmount = chestAmount;
-            s.stepDay = dailyObjective;
             s.stepDay = stepDao.getStepNumberSinceMidnightThatDay(r.tsBegin);
+            s.month = new DateTime(r.tsBegin).monthOfYear().getAsText(Locale.ENGLISH);
+            s.dayOfTheMonth = new DateTime(r.tsBegin).dayOfMonth().getAsText(Locale.ENGLISH);
+            s.dayOfTheWeek = new DateTime(r.tsBegin).dayOfWeek().getAsText(Locale.ENGLISH);
+
+            Log.d("testing", "Status AT INIT " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
 
             // Set up profile
             if (profileDao.getRowCount() > 0) {

@@ -36,10 +36,6 @@ import java.util.concurrent.TimeUnit;
 public class MainUnityActivity extends UnityPlayerActivity {
     public static final String tag = "testing";
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static final String USER_ACTION_CASH_OUT = "cashOut";
-    private static final String USER_ACTION_REVEAL_NEXT_REWARD = "revealNextReward";
-    private static final String USER_ACTION_OPEN_FROM_NOTIFICATION = "openFromNotification";
-    private static final String USER_ACTION_NONE = "none";
     public static MainUnityActivity instance = null;  // From "Unity As A Library" demo
     StepDao stepDao;
     ChallengeDao challengeDao;
@@ -124,6 +120,210 @@ public class MainUnityActivity extends UnityPlayerActivity {
         return loginChecked;
     }
 
+    long getBeginningOfTheDay(long ts) {
+        return new DateTime(ts, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+    }
+
+    long getBeginningOfTheDay() {
+        return getBeginningOfTheDay(System.currentTimeMillis());
+    }
+
+    void giveHapticFeedback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            View view = this.getCurrentFocus();
+            if (view != null)
+                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM);
+        }
+    }
+
+    void ifExperimentNotStarted(Status status) {
+
+        Log.d(tag, "MainUnityActivity => Experiment not started yet");
+        long tsNow = System.currentTimeMillis();
+        long tsExpEnds = challengeDao.getTsExpEnds();
+        long tsExpBegins = challengeDao.getTsExpBegins();
+
+        boolean experimentStarted = tsNow >= tsExpBegins;
+        boolean experimentEnded = tsNow >= tsExpEnds;
+        if (experimentEnded) {
+            // The user miss all the experience
+            // We don't really expect that to happen
+            ifExperimentEnded(status);
+            return;
+        } else if (experimentStarted) {
+            ifWaitingForNextChallengeProposal(status);
+            return;
+        }
+        // User still needs to wait
+        Log.d(tag, "MainUnityActivity => Experiment not started yet");
+        status.time = tsNow / 1000;
+    }
+
+    void ifExperimentEnded(Status status) {
+        status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+        status.time = System.currentTimeMillis() / 1000;
+    }
+
+    void ifWaitingForUserToCashOut(Status status, String userAction) {
+        List<Challenge> toCashOut = challengeDao.challengesThatNeedCashOut();
+        if (toCashOut.size() == 0) {
+            status.error = "Error! Waiting for cash out but nothing to cash out!";
+        } else if (Objects.equals(userAction, UserAction.CASH_OUT)) {
+            Log.d(tag, "MainUnityActivity => User cashed out");
+            Challenge challenge = toCashOut.get(0);
+            challengeDao.challengeHasBeenCashedOut(challenge);
+            status.chestAmount += challenge.amount;
+
+            // Give some haptic feedback
+            giveHapticFeedback();
+
+            // Cancel the notification if still there
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+            notificationManager.cancel(challenge.id);
+
+            if (status.currentChallenge < ConfigAndroid.maxChallengesPerDay - 1) {
+                status.currentChallenge++;
+            }
+
+            // Got to next stage;
+            status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
+            ifWaitingForNextChallengeProposal(status);
+        }
+    }
+
+    void ifWaitingForNextChallengeProposal(Status status) {
+        Log.d(tag, "MainUnityActivity => Waiting for next challenge proposal");
+        long tsExpEnds = challengeDao.getTsExpEnds();
+        boolean experimentEnded = System.currentTimeMillis() >= tsExpEnds;
+
+        if (experimentEnded) {
+            ifExperimentEnded(status);
+            return;
+        }
+
+        long dayBegins = getBeginningOfTheDay();
+        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
+        status.challenges = challengeDao.dayChallenges(dayBegins, dayEnds);
+        status.currentChallenge = 0;
+        long tsNow = System.currentTimeMillis();
+        while (tsNow > status.challenges.get(status.currentChallenge).tsOfferBegin) {
+            if (tsNow < status.challenges.get(status.currentChallenge).tsOfferEnd) {
+                // We are in the same day and the reward is in the past
+                // We need to show the reward
+                ifWaitingForUserToAccept(status, UserAction.NONE);
+                return;
+            } else if (status.currentChallenge < status.challenges.size() - 1) {
+                status.currentChallenge++;
+            } else {
+                // Otherwise the status doesn't change and we just wait for the next day
+                break;
+            }
+        }
+        status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
+        status.time = System.currentTimeMillis() / 1000;
+        Log.d(tag, "MainUnityActivity => Still waiting for next challenge proposal");
+    }
+
+    void ifWaitingForUserToAccept(Status status, String userAction) {
+        status.state = WAITING_FOR_USER_TO_ACCEPT;
+
+        long tsNow = System.currentTimeMillis();
+        long dayBegins = new DateTime(tsNow, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
+        long tsExpEnds = challengeDao.getTsExpEnds();
+        boolean experimentEnded = tsNow >= tsExpEnds;
+
+        status.challenges = challengeDao.dayChallenges(dayBegins, dayEnds);
+        Challenge challenge;
+        if (!experimentEnded) {
+            challenge = status.challenges.get(status.currentChallenge);
+        } else {
+            status.error = "Unexpected error (null value for challenge)!";
+            Log.d(tag, "MainUnityActivity => Challenge is null, this shouldn't happen");
+            return;
+        }
+
+        boolean buttonAction = Objects.equals(userAction, UserAction.ACCEPT);
+        if (tsNow > challenge.tsOfferEnd) {
+            Log.d(tag, "MainUnityActivity => User missed the acceptance window");
+            status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
+        } else if (buttonAction) {
+            Log.d(tag, "MainUnityActivity => User accepted the challenge");
+            status.state = WAITING_FOR_CHALLENGE_TO_START;
+        } else {
+            Log.d(tag, "MainUnityActivity => Still waiting for user to accept");
+        }
+    }
+
+    void ifWaitingForChallengeToStart(Status status) {
+        status.state = WAITING_FOR_CHALLENGE_TO_START;
+
+        long tsNow = System.currentTimeMillis();
+        long dayBegin = getBeginningOfTheDay();
+        boolean dayChanged = status.time * 1000 < dayBegin;
+        if (dayChanged) {
+            status.currentChallenge = 0;
+        } else {
+            if (status.currentChallenge < ConfigAndroid.maxChallengesPerDay - 1) {
+                status.currentChallenge++;
+            }
+        }
+        status.time = tsNow / 1000;
+        long dayBegins = new DateTime(tsNow, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
+        long tsExpEnds = challengeDao.getTsExpEnds();
+        boolean experimentEnded = tsNow >= tsExpEnds;
+
+        status.challenges = challengeDao.dayChallenges(dayBegins, dayEnds);
+        Challenge challenge;
+        if (experimentEnded) {
+            ifExperimentEnded(status);
+            return;
+        } else {
+            challenge = status.challenges.get(status.currentChallenge);
+        }
+
+        if (tsNow < challenge.tsBegin) {
+            Log.d(tag, "MainUnityActivity => Still waiting for challenge to start");
+        } else if (tsNow < challenge.tsEnd) {
+            status.state = ONGOING_CHALLENGE;
+        } else {
+            // User missed the challenge
+            if (status.currentChallenge < ConfigAndroid.maxChallengesPerDay - 1) {
+                status.currentChallenge++;
+            }
+
+            ifWaitingForNextChallengeProposal(status);
+        }
+    }
+
+    void ifOngoingChallenge(Status status) {
+
+        status.state = ONGOING_CHALLENGE;
+
+        long refTs = status.time * 1000;
+        long dayBegins = new DateTime(refTs, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
+
+        long tsNow = System.currentTimeMillis();
+
+        status.challenges = challengeDao.dayChallenges(dayBegins, dayEnds);
+        Challenge challenge = status.challenges.get(status.currentChallenge);
+
+        // Check that the objective has not been reached
+        if (challenge.objectiveReached) {
+            // User won the challenge, they need to cash out, moving to another state
+            ifWaitingForUserToCashOut(status, UserAction.NONE);
+        } else if (challenge.tsEnd > tsNow) {
+            // User missed the challenge, moving to another state
+            ifWaitingForChallengeToStart(status);
+        } else {
+            // User is still in the challenge
+            status.time = tsNow / 1000;
+        }
+    }
+
+
     @SuppressWarnings({"unused", "UnusedReturnValue"})
     public String getStatus(String userAction) throws JsonProcessingException {
         Status status = statusDao.getStatus();
@@ -135,194 +335,53 @@ public class MainUnityActivity extends UnityPlayerActivity {
             Log.d(tag, "MainUnityActivity => There is an error, I won't change anything");
             return mapper.writeValueAsString(status);
         }
-        switch (userAction) {
-            case USER_ACTION_CASH_OUT:
-                Log.d(tag, "MainUnityActivity => [User action] User clicked cashed out");
-                break;
-            case USER_ACTION_REVEAL_NEXT_REWARD:
-                Log.d(tag, "MainUnityActivity => [User action] User clicked next reward");
-                break;
-            case USER_ACTION_NONE:
-                // Log.d(tag, "MainUnityActivity => Just for info: No user action");
-                break;
-            case USER_ACTION_OPEN_FROM_NOTIFICATION:
-                Log.d(tag, "MainUnityActivity => [User action] Open from notification");
-                break;
-            default:
-                Log.d(tag, "MainUnityActivity => User action not recognized!!! This shouldn't happen");
-                break;
-        }
-
-        // Log.d(tag, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(reward));
-
-        // First, look if dates of the experiment are gone
-        long tsExpBegins = challengeDao.getTsExpBegins();
-        long tsExpEnds = challengeDao.getTsExpEnds();
-        long tsNow = System.currentTimeMillis();
-        long dayBegins = new DateTime(tsNow, MainActivity.tz).withTimeAtStartOfDay().getMillis();
-        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
-
-        boolean experimentStarted = tsNow >= tsExpBegins;
-        boolean experimentEnded = tsNow >= tsExpEnds;
-
-        boolean changeOfDay = tsNow > dayEnds;
-
-        // We changed of day
-        if (changeOfDay) {
-            if (Objects.equals(status.state, WAITING_FOR_USER_TO_CASH_OUT)) {
-                // We stick to the same day
-                dayBegins = new DateTime(status.time * 1000, MainActivity.tz).withTimeAtStartOfDay().getMillis();
-                dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
-            } else {
-                if (experimentStarted) {
-                    status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
-                    status.currentChallenge = 0;
-                }
-                status.time = tsNow / 1000;  // In seconds
-            }
-        }
-
-        status.challenges = challengeDao.dayChallenges(dayBegins, dayEnds);
-        Challenge challenge = null;
-        if (!experimentEnded) {
-            challenge = status.challenges.get(status.currentChallenge);
-        }
 
         switch (status.state) {
             case EXPERIMENT_NOT_STARTED:
-                if (experimentEnded) {
-                    // The user miss all the experience
-                    // We don't really expect that to happen
-                    status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
-                } else if (experimentStarted) {
-                    status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
-                } else {
-                    // User still needs to wait
-                    Log.d(tag, "MainUnityActivity => Experiment not started yet");
-                }
+                ifExperimentNotStarted(status);
                 break;
 
             case WAITING_FOR_NEXT_CHALLENGE_PROPOSAL:
-                if (experimentEnded) {
-                    status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
-                } else if (tsNow > challenge.tsAcceptBegin) {
-                    if (tsNow < challenge.tsAcceptEnd) {
-                        // We are in the same day and the reward is in the past
-                        // We need to show the reward
-                        status.state = WAITING_FOR_USER_TO_ACCEPT;
-                    } else {
-                        // The user missed the proposal window, we need to propose another challenge
-                        if (status.currentChallenge < ConfigAndroid.maxChallengesPerDay - 1) {
-                            status.currentChallenge++;
-                        }
-                        // Otherwise the status doesn't change and we just wait for the next day
-                    }
-                } else {
-                    Log.d(tag, "MainUnityActivity => Still waiting for next challenge proposal");
-                }
+                ifWaitingForNextChallengeProposal(status);
+                break;
 
             case WAITING_FOR_USER_TO_ACCEPT:
-                if (challenge == null) {
-                    status.error = "Unexpected error (null value for challenge)!";
-                    Log.d(tag, "MainUnityActivity => Challenge is null, this shouldn't happen");
-                    break;
-                }
-                boolean buttonAction = Objects.equals(userAction, USER_ACTION_REVEAL_NEXT_REWARD);
-                if (tsNow > challenge.tsAcceptEnd) {
-                    Log.d(tag, "MainUnityActivity => User missed the acceptance window");
-                    status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
-                } else if (buttonAction) {
-                    Log.d(tag, "MainUnityActivity => User accepted the challenge");
-                    status.state = WAITING_FOR_CHALLENGE_TO_START;
-                } else {
-                    Log.d(tag, "MainUnityActivity => Still waiting for user to accept");
-                }
+                ifWaitingForUserToAccept(status, userAction);
                 break;
 
             case WAITING_FOR_CHALLENGE_TO_START:
-                if (challenge == null) {
-                    status.error = "Unexpected error (null value for challenge)!";
-                    Log.d(tag, "MainUnityActivity => Challenge is null, this shouldn't happen");
-                    break;
-                }
-                if(tsNow < challenge.tsBegin) {
-                    Log.d(tag, "MainUnityActivity => Still waiting for challenge to start");
-                } else if (tsNow < challenge.tsEnd) {
-                    status.state = ONGOING_CHALLENGE;
-                } else {
-                    // User missed the challenge
-                    if (status.currentChallenge < ConfigAndroid.maxChallengesPerDay - 1) {
-                        status.currentChallenge++;
-                    }
-                    status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
-                }
+                ifWaitingForChallengeToStart(status);
                 break;
 
             case ONGOING_CHALLENGE:
-                if (challenge == null) {
-                    status.error = "Unexpected error (null value for challenge)!";
-                    Log.d(tag, "MainUnityActivity => Challenge is null, this shouldn't happen");
-                    break;
-                }
-                // Check that the objective has not been reached
-                if (challenge.objectiveReached) {
-                    status.state = WAITING_FOR_USER_TO_CASH_OUT;
-                } else if (challenge.tsEnd > tsNow) {
-                    // User missed the challenge
-                    if (status.currentChallenge < ConfigAndroid.maxChallengesPerDay - 1) {
-                        status.currentChallenge++;
-                    }
-                    status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
-                }
+                ifOngoingChallenge(status);
                 break;
 
             case WAITING_FOR_USER_TO_CASH_OUT:
-
-                List<Challenge> toCashOut = challengeDao.challengesThatNeedCashOut();
-                if (toCashOut.size() == 0) {
-                    status.error = "Error! Waiting for cash out but nothing to cash out!";
-                } else if (Objects.equals(userAction, USER_ACTION_CASH_OUT)) {
-                    Log.d(tag, "MainUnityActivity => User cashed out");
-                    challenge = toCashOut.get(0);
-                    challengeDao.challengeHasBeenCashedOut(challenge);
-                    status.chestAmount += challenge.amount;
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        View view = this.getCurrentFocus();
-                        if (view != null)
-                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM);
-                    }
-                    // Cancel the notification if still there
-                    NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-                    notificationManager.cancel(challenge.id);
-
-                    if (status.currentChallenge < ConfigAndroid.maxChallengesPerDay - 1) {
-                        status.currentChallenge++;
-                    }
-                    status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
-
-                    // Inception it's not a bug, it's a feature (thank you @GitHub Copilot for providing this comment)
-                    return getStatus(USER_ACTION_NONE);
-
-                } else {
-                    Log.d(tag, "MainUnityActivity => Waiting for user to cash out");
-                }
+                ifWaitingForUserToCashOut(status, userAction);
                 break;
 
             case EXPERIMENT_ENDED_AND_ALL_CASH_OUT:
-                // Nothing specific to do here, that's the END state
+                ifExperimentEnded(status);
                 break;
 
             default:
-                Log.d(tag, "MainUnityActivity => Case not handled");
+                Log.d("testing", "MainUnityActivity => Case not handled");
                 status.error = "I encountered an error!";
                 break;
         }
 
+        // Set the date
         DateTime now = new DateTime(status.time * 1000, MainActivity.tz);  // Convert to milliseconds
-        status.stepDay = stepDao.getStepNumberSinceMidnightThatDay(dayBegins);
+        status.stepDay = stepDao.getStepNumberSinceMidnightThatDay(now.getMillis());
         status.dayOfTheWeek = now.dayOfWeek().getAsText(Locale.ENGLISH);
         status.dayOfTheMonth = now.dayOfMonth().getAsText(Locale.ENGLISH);
         status.month = now.monthOfYear().getAsText(Locale.ENGLISH);
+
+        // Set the challenges (using `now` as the reference date)
+        status.challenges = challengeDao.dayChallenges(
+                now.withTimeAtStartOfDay().getMillis(),
+                now.withTimeAtStartOfDay().getMillis() + TimeUnit.DAYS.toMillis(1));
 
         statusDao.update(status);
 
@@ -425,7 +484,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
             interactionDao.newInteraction("onNotificationTap");
 
             try {
-                getStatus(USER_ACTION_OPEN_FROM_NOTIFICATION);
+                getStatus(UserAction.OPEN_FROM_NOTIFICATION);
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }

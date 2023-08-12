@@ -24,7 +24,7 @@ public interface ChallengeDao {
     @Query("SELECT * FROM Challenge WHERE id = :id")
     Challenge getChallenge(int id);
 
-    @Query("SELECT * FROM Challenge ORDER BY tsBegin, stepGoal LIMIT 1")
+    @Query("SELECT * FROM Challenge ORDER BY tsBegin, objective LIMIT 1")
     Challenge getFirstChallenge();
 
     @Query("SELECT * FROM Challenge WHERE serverTag != androidTag")
@@ -48,7 +48,7 @@ public interface ChallengeDao {
         return uuid.toString();
     }
 
-    @Query("SELECT * FROM Challenge WHERE tsBegin >= :dayBegins AND tsBegin < :dayEnds AND objectiveReached = 0 AND stepGoal <= :stepNumber ORDER BY stepGoal")
+    @Query("SELECT * FROM Challenge WHERE tsBegin >= :dayBegins AND tsBegin < :dayEnds AND objectiveReached = 0 AND objective <= :stepNumber ORDER BY objective")
     List<Challenge> notFlaggedObjectiveReachedChallenges(int stepNumber, long dayBegins, long dayEnds);
 
     default List<Challenge> notFlaggedObjectiveReachedChallenges(Step step) {
@@ -57,10 +57,10 @@ public interface ChallengeDao {
         return notFlaggedObjectiveReachedChallenges(step.stepMidnight, dayBegins, dayEnds);
     }
 
-    @Query("SELECT * FROM Challenge WHERE objectiveReached = 1 AND cashedOut = 0 ORDER BY tsAcceptBegin")
+    @Query("SELECT * FROM Challenge WHERE objectiveReached = 1 AND cashedOut = 0 ORDER BY tsOfferBegin")
     List<Challenge> challengesThatNeedCashOut();
 
-    @Query("SELECT * FROM Challenge WHERE tsBegin >= :dayBegins AND tsBegin < :dayEnds ORDER BY tsAcceptBegin")
+    @Query("SELECT * FROM Challenge WHERE tsBegin >= :dayBegins AND tsBegin < :dayEnds ORDER BY tsOfferBegin")
     List<Challenge> dayChallenges(long dayBegins, long dayEnds);
 
     @Query("UPDATE Challenge SET cashedOut = 1, cashedOutTs = :ts, androidTag = :uuid WHERE id = :challengeId")

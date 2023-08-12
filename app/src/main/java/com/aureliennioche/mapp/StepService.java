@@ -240,7 +240,7 @@ public class StepService extends Service implements SensorEventListener {
 
             int nStep = rec.stepMidnight - nStepBefore;
 
-            if (nStep < c.stepGoal) {
+            if (nStep < c.objective) {
                 Log.d(tag, "not enough steps");
                 continue;
             }

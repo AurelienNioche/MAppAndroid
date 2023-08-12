@@ -4,8 +4,6 @@ public class LoginResponse {
     @SuppressWarnings("unused")
     public String subject;
     public boolean ok;
-    public int dailyObjective = -1;
-    public double chestAmount = -1;
     public String challengeList = "<to be filled by the server>";  // rewardListInJsonFormat
     public String stepList = "<to be filled by the server>";  // rewardListInJsonFormat
     public String status = "<to be filled by the server>";

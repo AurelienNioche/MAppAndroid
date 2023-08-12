@@ -16,11 +16,11 @@ public class Challenge {
     @ColumnInfo()
     public long tsEnd;  // Unix timestamp in milliseconds
     @ColumnInfo()
-    public long tsAcceptBegin;  // Unix timestamp in milliseconds
+    public long tsOfferBegin;  // Unix timestamp in milliseconds
     @ColumnInfo()
-    public long tsAcceptEnd;  // Unix timestamp in milliseconds
+    public long tsOfferEnd;  // Unix timestamp in milliseconds
     @ColumnInfo()
-    public int stepGoal;
+    public int objective;
     @ColumnInfo()
     public int stepCount;
     @ColumnInfo()

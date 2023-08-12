@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "7755257cedc3c9e4f901ce994116c128",
+    "identityHash": "902938475924dc6bec580ee1ac93460a",
     "entities": [
       {
         "tableName": "status",
@@ -80,7 +80,7 @@
       },
       {
         "tableName": "challenge",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tsBegin` INTEGER NOT NULL, `tsEnd` INTEGER NOT NULL, `tsAcceptBegin` INTEGER NOT NULL, `tsAcceptEnd` INTEGER NOT NULL, `stepGoal` INTEGER NOT NULL, `stepCount` INTEGER NOT NULL, `amount` REAL NOT NULL, `accepted` INTEGER NOT NULL, `acceptedTs` INTEGER NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `serverTag` TEXT, `androidTag` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tsBegin` INTEGER NOT NULL, `tsEnd` INTEGER NOT NULL, `tsOfferBegin` INTEGER NOT NULL, `tsOfferEnd` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `stepCount` INTEGER NOT NULL, `amount` REAL NOT NULL, `accepted` INTEGER NOT NULL, `acceptedTs` INTEGER NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `serverTag` TEXT, `androidTag` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -101,20 +101,20 @@
             "notNull": true
           },
           {
-            "fieldPath": "tsAcceptBegin",
-            "columnName": "tsAcceptBegin",
+            "fieldPath": "tsOfferBegin",
+            "columnName": "tsOfferBegin",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "tsAcceptEnd",
-            "columnName": "tsAcceptEnd",
+            "fieldPath": "tsOfferEnd",
+            "columnName": "tsOfferEnd",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "stepGoal",
-            "columnName": "stepGoal",
+            "fieldPath": "objective",
+            "columnName": "objective",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -294,7 +294,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7755257cedc3c9e4f901ce994116c128')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '902938475924dc6bec580ee1ac93460a')"
     ]
   }
 }

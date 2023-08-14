@@ -23,6 +23,8 @@ import androidx.core.app.NotificationManagerCompat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.unity3d.player.UnityPlayer;
 import com.unity3d.player.UnityPlayerActivity;
 
@@ -246,13 +248,13 @@ public class MainUnityActivity extends UnityPlayerActivity {
         boolean buttonAction = Objects.equals(userAction, UserAction.ACCEPT);
         if (tsNow > challenge.tsOfferEnd) {
             Log.d(tag, "MainUnityActivity => User missed the acceptance window");
-            status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
+            ifWaitingForNextChallengeProposal(status);
         } else if (buttonAction) {
             Log.d(tag, "MainUnityActivity => User accepted the challenge");
-            status.state = WAITING_FOR_CHALLENGE_TO_START;
-        } else {
-            Log.d(tag, "MainUnityActivity => Still waiting for user to accept");
+            ifWaitingForChallengeToStart(status);
         }
+        Log.d(tag, "MainUnityActivity => Still waiting for user to accept");
+        status.ts = System.currentTimeMillis();
     }
 
     void ifWaitingForChallengeToStart(Status status) {
@@ -378,19 +380,47 @@ public class MainUnityActivity extends UnityPlayerActivity {
         status.dayOfTheMonth = now.dayOfMonth().getAsText(Locale.ENGLISH);
         status.month = now.monthOfYear().getAsText(Locale.ENGLISH);
 
+        status.tsAtStartOfDay = new DateTime(status.ts, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+
         // Save the status
         statusDao.update(status);
 
+        Log.d(tag, "Init ts" + status.ts);
+        Log.d(tag, "Init ts start of the day" + status.ts);
+        // Set the time in Unity system
+        status.ts /= 1000;
+        status.tsAtStartOfDay /= 1000;
+
+        Log.d(tag, "New ts" + status.ts);
+        Log.d(tag, "New ts start of the day" + status.tsAtStartOfDay);
+
+        status.challenges.forEach(item -> {Log.d(tag, "Challenge, offer begins: " + item.tsOfferBegin);});
+
+        // String jsonString = mapper.writeValueAsString(status);
+
+        // Parse the JSON string into an ObjectNode
+        ObjectNode parentNode = (ObjectNode) mapper.valueToTree(status);
+
         // Add extra information for Unity
         // Set the challenges (using `now` as the reference date)
-        status.challenges = challengeDao.dayChallenges(
+        List<Challenge>challenges = challengeDao.dayChallenges(
                 now.withTimeAtStartOfDay().getMillis(),
                 now.withTimeAtStartOfDay().getMillis() + TimeUnit.DAYS.toMillis(1));
-        // Set the time in Unity system
-        status.ts = status.ts / 1000;
+        challenges.forEach(item -> {
+            item.tsOfferBegin /= 1000;
+            item.tsOfferEnd /= 1000;
+            item.tsBegin /= 1000;
+            item.tsEnd /= 1000;
+        });
 
-        Log.d(tag, "Status AFTER updating" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(status));
-        return mapper.writeValueAsString(status);
+        // ObjectNode childNode = mapper.createObjectNode();
+        // childNode.set("challenges", mapper.valueToTree(challenges));
+
+        parentNode.set("challenges", mapper.valueToTree(challenges));
+
+        String toReturn = mapper.writeValueAsString(parentNode);
+        Log.d(tag, "Status AFTER updating" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(parentNode));
+        return toReturn;
     }
 
     // ---------------------------------------------------------------------------

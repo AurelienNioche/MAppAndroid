@@ -49,7 +49,8 @@ public class Status {
     public int currentChallenge = 0;
     @ColumnInfo
     public long ts;
-
+    @ColumnInfo
+    public long tsAtStartOfDay;
     @Ignore
     List<Challenge> challenges = new ArrayList<>();
 }

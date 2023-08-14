@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "902938475924dc6bec580ee1ac93460a",
+    "identityHash": "44af8654875cec5f23601fc33457d18b",
     "entities": [
       {
         "tableName": "status",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `state` TEXT, `chestAmount` REAL NOT NULL, `stepDay` INTEGER NOT NULL, `dayOfTheWeek` TEXT, `dayOfTheMonth` TEXT, `month` TEXT, `error` TEXT, `currentChallenge` INTEGER NOT NULL, `time` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `state` TEXT, `chestAmount` REAL NOT NULL, `stepDay` INTEGER NOT NULL, `dayOfTheWeek` TEXT, `dayOfTheMonth` TEXT, `month` TEXT, `error` TEXT, `currentChallenge` INTEGER NOT NULL, `ts` INTEGER NOT NULL, `tsAtStartOfDay` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -63,8 +63,14 @@
             "notNull": true
           },
           {
-            "fieldPath": "time",
-            "columnName": "time",
+            "fieldPath": "ts",
+            "columnName": "ts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tsAtStartOfDay",
+            "columnName": "tsAtStartOfDay",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -294,7 +300,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '902938475924dc6bec580ee1ac93460a')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '44af8654875cec5f23601fc33457d18b')"
     ]
   }
 }

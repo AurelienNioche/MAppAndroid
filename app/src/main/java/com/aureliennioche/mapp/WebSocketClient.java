@@ -251,8 +251,8 @@ class WebSocketClient extends WebSocketListener {
         serverLastRecordTimestampMillisecond = er.lastActivityTimestampMillisecond;
         serverLastInteractionTimestampMillisecond = er.lastInteractionTimestampMillisecond;
 
-        List<Integer> syncRewardsId = mapper.readValue(er.syncRewardsId, new TypeReference<List<Integer>>() {});
-        List<String> syncRewardsServerTag = mapper.readValue(er.syncRewardsTag, new TypeReference<List<String>>() {});
+        List<Integer> syncRewardsId = mapper.readValue(er.syncedChallengesId, new TypeReference<List<Integer>>() {});
+        List<String> syncRewardsServerTag = mapper.readValue(er.syncedChallengesTag, new TypeReference<List<String>>() {});
 
         challengeDao.updateServerTags(syncRewardsId, syncRewardsServerTag);
     }

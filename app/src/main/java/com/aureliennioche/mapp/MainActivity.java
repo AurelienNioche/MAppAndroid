@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
             // We've bound to LocalService, cast the IBinder and get LocalService instance.
             StepService.LocalBinder binder = (StepService.LocalBinder) service;
             stepService = binder.getService();
-            Log.d(tag, "service bounded");
+            // Log.d(tag, "service bounded");
         }
 
         @Override
@@ -69,8 +69,8 @@ public class MainActivity extends AppCompatActivity {
                 | View.SYSTEM_UI_FLAG_FULLSCREEN;
         decorView.setSystemUiVisibility(uiOptions);
 
-        Log.d(tag, "MainActivity => Start the MainActivity");
-        Log.d(tag, "Timezone " + tz.toString());
+        // Log.d(tag, "MainActivity => Start the MainActivity");
+        // Log.d(tag, "Timezone " + tz.toString());
 
         checkVersionAndCleanUpIfNecessary();
         checkPermissions();
@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
         final String PREF_VERSION_NAME_KEY = "version_code";
         final String DOES_NOT_EXIST = "DOES_NOT_EXIST";
 
-        Log.d(tag, "Git hash: " + BuildConfig.VERSION_NAME);
+        // Log.d(tag, "Git hash: " + BuildConfig.VERSION_NAME);
 
         // Get current version code
         String currentVersionCode = BuildConfig.VERSION_NAME;
@@ -93,26 +93,27 @@ public class MainActivity extends AppCompatActivity {
 
         // Check for first run or upgrade
         if (currentVersionCode.equals(savedVersionCode)) {
-            Log.d(tag, "App already installed before");
+            // Log.d(tag, "App already installed before");
             // This is just a normal run
             return;
-        } else if (savedVersionCode.equals(DOES_NOT_EXIST)) {
-            // This is a new install (or the user cleared the shared preferences)
-            Log.d(tag, "New install");
-        } else {
-            Log.d(tag, "Upgrade");
         }
+//        } else if (savedVersionCode.equals(DOES_NOT_EXIST)) {
+//            // This is a new install (or the user cleared the shared preferences)
+//            // Log.d(tag, "New install");
+//        } else {
+//            // Log.d(tag, "Upgrade");
+//        }
 
         // Get a reference to the db interface
         MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
 
         // Only if upgrade or new install
-        if (ConfigAndroid.eraseRewardTableAfterUpdate) {
-            Log.d(tag, "Deleting previously existing tables");
+        if (ConfigAndroid.eraseChallengeTableAfterUpdate) {
+            // Log.d(tag, "Deleting previously existing tables");
             ChallengeDao challengeDao = db.rewardDao();
             challengeDao.nukeTable();
         }
-        if (ConfigAndroid.eraseStepRecordTableAfterUpdate) {
+        if (ConfigAndroid.eraseStepTableAfterUpdate) {
             StepDao stepDao = db.stepDao();
             stepDao.nukeTable();
         }
@@ -135,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void allPermissionsHaveBeenGranted() {
 
-        Log.d(tag, "MainActivity => Starting the service if not already started");
+        // Log.d(tag, "MainActivity => Starting the service if not already started");
         startForegroundService(new Intent(this.getApplication(), StepService.class));
 
         Intent intent = new Intent(this, StepService.class);
@@ -148,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void launchUnity() {
 
-        Log.d(tag, "MainActivity => Launching the Unity activity");
+        // Log.d(tag, "MainActivity => Launching the Unity activity");
         Intent intent = new Intent(MainActivity.this, MainUnityActivity.class);
         MainActivity.this.startActivity(intent);
         intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
@@ -156,12 +157,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onPause() {
-        Log.d(tag, "MainActivity => onPause");
+        // Log.d(tag, "MainActivity => onPause");
         super.onPause();
     }
 
     public void onDestroy() {
-        Log.d(tag, "MainActivity => onDestroy");
+        // Log.d(tag, "MainActivity => onDestroy");
         if (stepService != null) {
             // Detach the service connection.
             unbindService(connection);
@@ -171,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onResume() {
         super.onResume();
-        Log.d(tag, "MainActivity => onResume");
+        // Log.d(tag, "MainActivity => onResume");
     }
 
     // ----------------------------------------- //

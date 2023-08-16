@@ -70,7 +70,7 @@ class WebSocketClient extends WebSocketListener {
     }
 
     void backgroundSync() {
-        PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(UploadWorker.class, 15, TimeUnit.MINUTES)
+        PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(UploadWorker.class, ConfigAndroid.serverUpdateRepeatInterval, TimeUnit.MINUTES)
                 // Constraints
                 .build();
         WorkManager workManager = WorkManager.getInstance(this.stepService.getBaseContext());
@@ -93,7 +93,7 @@ class WebSocketClient extends WebSocketListener {
     }
 
     public void startWebSocket() {
-        Log.d(TAG, "Starting web socket");
+        // Log.d(TAG, "Starting web socket");
 
         OkHttpClient client = new OkHttpClient.Builder()
                 .readTimeout(0,  TimeUnit.MILLISECONDS)
@@ -109,7 +109,7 @@ class WebSocketClient extends WebSocketListener {
     }
 
     @Override public void onOpen(@NonNull WebSocket webSocket, @NonNull Response response) {
-        Log.d(TAG, "websocket open!");
+        // TAG, "websocket open!");
         // webSocket.send("Hello...");
         // webSocket.send("...World!");
         // webSocket.send(ByteString.decodeHex("deadbeef"));
@@ -121,7 +121,7 @@ class WebSocketClient extends WebSocketListener {
     }
 
     @Override public void onMessage(@NonNull WebSocket webSocket, @NonNull String text) {
-        Log.d(TAG, "MESSAGE: " + text);
+        // Log.d(TAG, "MESSAGE: " + text);
         try {
             GenericResponse gr = mapper.readValue(text, new TypeReference<GenericResponse>() {
             });
@@ -134,7 +134,7 @@ class WebSocketClient extends WebSocketListener {
                         text, new TypeReference<ExerciseResponse>() {});
                 handleExerciseResponse(er);
             } else {
-                Log.d(TAG, "Server response not parsed!!!!!");
+                // Log.d(TAG, "Server response not parsed!!!!!");
             }
 
         } catch (JsonProcessingException e) {
@@ -143,18 +143,18 @@ class WebSocketClient extends WebSocketListener {
     }
 
     @Override public void onMessage(@NonNull WebSocket webSocket, ByteString bytes) {
-        Log.d(TAG, "MESSAGE bytes: " + bytes.hex());
+        // Log.d(TAG, "MESSAGE bytes: " + bytes.hex());
     }
 
     @Override public void onClosing(WebSocket webSocket, int code, @NonNull String reason) {
         webSocket.close(1000, null);
-        Log.d(TAG, "CLOSE: " + code + " " + reason);
+        // Log.d(TAG, "CLOSE: " + code + " " + reason);
         ws = null;
         broadcastConnection();
     }
 
     @Override public void onFailure(@NonNull WebSocket webSocket, Throwable t, Response response) {
-        Log.d(TAG, "FAILURE: " + response + ", " + t);
+        // Log.d(TAG, "FAILURE: " + response + ", " + t);
         ws = null;
 
         t.printStackTrace();
@@ -163,24 +163,22 @@ class WebSocketClient extends WebSocketListener {
 
         Handler handler = new Handler(Looper.getMainLooper());
         // Define the code block to be executed
-        handler.postDelayed(() -> {
-            Log.d(TAG, "Trying to reconnect server");
-            startWebSocket();
-        }, ConfigAndroid.delayServerReconnection);
+        // Log.d(TAG, "Trying to reconnect server");
+        handler.postDelayed(this::startWebSocket, ConfigAndroid.delayServerReconnection);
     }
 
     public void close() {
-        Log.d(TAG, "I have been ordered to close");
+        // Log.d(TAG, "I have been ordered to close");
         if (ws != null) {
             ws.close(1000, null);
         }
     }
 
     public void syncServer() {
-        Log.d(TAG, "I'll try to sync the server");
+        // Log.d(TAG, "I'll try to sync the server");
 
         if (!profileDao.isProfileSet()) {
-            Log.d(TAG, "Profile not set yet, I'll just skip");
+            // Log.d(TAG, "Profile not set yet, I'll just skip");
             return;
         }
 
@@ -239,9 +237,10 @@ class WebSocketClient extends WebSocketListener {
                 throw new RuntimeException(e);
             }
 
-        } else {
-            Log.d(TAG, "Websocket not connected or debug mode, I'll skip");
         }
+//        else {
+//            // Log.d(TAG, "Websocket not connected or debug mode, I'll skip");
+//        }
     }
 
     void handleExerciseResponse(
@@ -261,10 +260,10 @@ class WebSocketClient extends WebSocketListener {
             LoginResponse lr
     ) throws JsonProcessingException {
 
-        Log.d("testing", "handleLoginResponse");
+        // Log.d("testing", "handleLoginResponse");
 
         if (lr.ok) {
-            Log.d("testing", "handleLoginResponse ok");
+            // Log.d("testing", "handleLoginResponse ok");
             String rewardListJson = lr.challengeList;
             String statusJson = lr.status;
             String stepRecordListJson = lr.stepList;
@@ -273,17 +272,17 @@ class WebSocketClient extends WebSocketListener {
             // Setup status
             Status s;
             if (ConfigAndroid.initWithStatus) {
-                Log.d("testing", "handleLoginResponse initWithStatus");
+                // Log.d("testing", "handleLoginResponse initWithStatus");
                 s = mapper.readValue(statusJson,
                         new TypeReference<Status>(){});
             } else {
-                Log.d(TAG, "handleLoginResponse NOT initWithStatus");
+                // Log.d(TAG, "handleLoginResponse NOT initWithStatus");
                 s = new Status();
             }
 
-            Log.d("testing", "handleLoginResponse status: " + s);
+            // Log.d("testing", "handleLoginResponse status: " + s);
 
-            Log.d("testing", "handleLoginResponse insert steps");
+            // Log.d("testing", "handleLoginResponse insert steps");
             // Set up record steps
             if (ConfigAndroid.initWithStepRecords) {
                 List<Step> steps =
@@ -291,10 +290,10 @@ class WebSocketClient extends WebSocketListener {
                                 new TypeReference<List<Step>>(){});
                 stepDao.insertIfNotExisting(steps);
 
-                Log.d("testing", "handleLoginResponse steps inserted: " + steps.size());
+                // Log.d("testing", "handleLoginResponse steps inserted: " + steps.size());
             }
 
-            Log.d("testing", "handleLoginResponse setup challenges");
+            // Log.d("testing", "handleLoginResponse setup challenges");
             // Set up challenges
             List<Challenge> challenges = mapper.readValue(rewardListJson,
                     new TypeReference<List<Challenge>>(){});
@@ -303,15 +302,15 @@ class WebSocketClient extends WebSocketListener {
 
             challengeDao.insertChallengesIfNotExisting(challenges);
 
-            Log.d("testing", "handleLoginResponse number of challenges:" + challenges.size());
+            // Log.d("testing", "handleLoginResponse number of challenges:" + challenges.size());
 
-            Log.d("testing", "Challenges saved:");
+            // Log.d("testing", "Challenges saved:");
             challengeDao.getAll().forEach(item -> {
-                Log.d("testing", "id " + item.id + " tag " + item.serverTag);
-                Log.d("testing", "begin " + new DateTime(item.tsOfferBegin).toString());
+                // Log.d("testing", "id " + item.id + " tag " + item.serverTag);
+                // Log.d("testing", "begin " + new DateTime(item.tsOfferBegin).toString());
             });
 
-            Log.d("testing", "handleLoginResponse number of challenges from db:" + challengeDao.getAll().size());
+            // Log.d("testing", "handleLoginResponse number of challenges from db:" + challengeDao.getAll().size());
 
             Challenge r = challengeDao.getFirstChallenge();
 
@@ -321,11 +320,11 @@ class WebSocketClient extends WebSocketListener {
             s.dayOfTheMonth = new DateTime(r.tsBegin).dayOfMonth().getAsText(Locale.ENGLISH);
             s.dayOfTheWeek = new DateTime(r.tsBegin).dayOfWeek().getAsText(Locale.ENGLISH);
 
-            Log.d("testing", "Status AT INIT " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
+            // Log.d("testing", "Status AT INIT " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
 
             // Set up profile
             if (profileDao.getRowCount() > 0) {
-                Log.d(TAG, "THIS SHOULD NOT HAPPEN");
+                // Log.d(TAG, "THIS SHOULD NOT HAPPEN");
                 s.error = "Profile already exists";
             }
 
@@ -333,11 +332,11 @@ class WebSocketClient extends WebSocketListener {
             p.username = username;
             profileDao.insert(p);
 
-            Log.d(tag, "Status at the INITIALIZATION " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
+            // Log.d(tag, "Status at the INITIALIZATION " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(s));
             statusDao.insert(s);
         }
 
-        Log.d("testing", "handleLoginResponse broadcastLoginInfo");
+        // Log.d("testing", "handleLoginResponse broadcastLoginInfo");
         broadcastLoginInfo(lr);
     }
 
@@ -348,7 +347,7 @@ class WebSocketClient extends WebSocketListener {
         BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                Log.d(TAG, "WebSocketClient => Received a broadcast for sending a message");
+                // Log.d(TAG, "WebSocketClient => Received a broadcast for sending a message");
                 String msg = intent.getStringExtra("message");
                 send(msg);
             }
@@ -360,7 +359,7 @@ class WebSocketClient extends WebSocketListener {
             @Override
             public void onReceive(Context context, Intent intent) {
                 //do something based on the intent's action
-                Log.d(TAG, "WebSocketClient => Received broadcast");
+                // Log.d(TAG, "WebSocketClient => Received broadcast");
                 broadcastConnection();
             }
         };
@@ -378,7 +377,7 @@ class WebSocketClient extends WebSocketListener {
                     ws.send(message);
                 } else {
                     // Do something here on the main thread
-                    Log.d(TAG, "I will try back");
+                    // Log.d(TAG, "I will try back");
                     // Repeat this the same runnable code block again another 2 seconds
                     // 'this' is referencing the Runnable object
                     handler.postDelayed(this, ConfigAndroid.delaySendRetry);
@@ -390,7 +389,7 @@ class WebSocketClient extends WebSocketListener {
     }
 
     void broadcastConnection() {
-        Log.d(TAG, "Send broadcast for connection");
+        // Log.d(TAG, "Send broadcast for connection");
         boolean webSocketOpen = ws != null;
         Intent broadcastIntent = new Intent("MAIN_UNITY_ACTIVITY_CONNECTION_INFO");
         ConnectionInfo ci = new ConnectionInfo();
@@ -402,12 +401,12 @@ class WebSocketClient extends WebSocketListener {
             throw new RuntimeException(e);
         }
         broadcastIntent.putExtra("connectionInfoJson", ciJson);
-        Log.d(TAG, "Connection info: " + ciJson);
+        // Log.d(TAG, "Connection info: " + ciJson);
         stepService.sendBroadcast(broadcastIntent);
     }
 
     void broadcastLoginInfo(LoginResponse loginResponse) throws JsonProcessingException {
-        Log.d(TAG, "Send broadcast for login");
+        // Log.d(TAG, "Send broadcast for login");
         LoginInfo li = new LoginInfo();
         li.loginOk = loginResponse.ok;
         String liJson = mapper.writeValueAsString(li);

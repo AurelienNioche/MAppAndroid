@@ -27,7 +27,7 @@ public abstract class MAppDatabase extends RoomDatabase {
     public static synchronized MAppDatabase getInstance(Context context)
     {
         if (instance==null) {
-            Log.d("testing", "CREATING DATABASE");
+            // Log.d("testing", "CREATING DATABASE");
             instance = Room.databaseBuilder(context,
                     MAppDatabase.class, "mapp-database")
                     .allowMainThreadQueries()

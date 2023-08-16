@@ -96,7 +96,7 @@ public interface StepDao {
         // Record new entry
         insert(rec);
 
-        Log.d(tag, "recordNewSensorValue => step midnight " + rec.stepMidnight);
+        // Log.d(tag, "recordNewSensorValue => step midnight " + rec.stepMidnight);
 
         // Delete
         long bound = dayBegins - TimeUnit.DAYS.toMillis(ConfigAndroid.keepDataNoLongerThanXdays);

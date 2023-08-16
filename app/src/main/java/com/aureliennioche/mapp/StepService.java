@@ -51,7 +51,7 @@ public class StepService extends Service implements SensorEventListener {
 
     @Override
     public void onCreate() {
-        Log.d(tag, "onStartCommand => Creating the service");
+        // Log.d(tag, "onStartCommand => Creating the service");
         MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
         stepDao = db.stepDao();
         challengeDao = db.rewardDao();
@@ -63,7 +63,7 @@ public class StepService extends Service implements SensorEventListener {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(tag, "onStartCommand => Service starting");
+        // Log.d(tag, "onStartCommand => Service starting");
 
         // Create notification channels
         createNotificationChannelBackgroundTask();
@@ -99,13 +99,13 @@ public class StepService extends Service implements SensorEventListener {
 
     @Override
     public IBinder onBind(Intent intent) {
-        Log.d(tag, "StepService => onBind");
+        // Log.d(tag, "StepService => onBind");
         return binder;
     }
 
     @Override
     public void onDestroy() {
-        Log.d(tag, "StepService => onDestroy => Service destroyed");
+        // Log.d(tag, "StepService => onDestroy => Service destroyed");
         Toast.makeText(this, "MApp step counter service has been killed!", Toast.LENGTH_SHORT).show();
         if (sensorManager != null) {
             sensorManager.unregisterListener(this);
@@ -180,15 +180,16 @@ public class StepService extends Service implements SensorEventListener {
         // notificationId is a unique int for each notification that you must define
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             notificationManager.notify(notificationId, builder.build());
-        } else {
-            Log.d(tag, "notification not authorized");
         }
+        // else {
+            // Log.d(tag, "notification not authorized");
+        // }
     }
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         int sensorValue = (int) sensorEvent.values[0];
-        Log.d(tag, "onSensorChanged: " + sensorValue);
+        // Log.d(tag, "onSensorChanged: " + sensorValue);
         Step rec = stepDao.recordNewSensorValue(sensorValue);
         checkIfObjectiveIsReached(rec);
     }
@@ -204,7 +205,7 @@ public class StepService extends Service implements SensorEventListener {
         } else {
             Log.e(tag, "initSensorManager => Sensor not found");
         }
-        Log.d(tag, "initSensorManager => Sensor manager initialized");
+        // Log.d(tag, "initSensorManager => Sensor manager initialized");
     }
 
     void checkIfObjectiveIsReached(Step rec) {
@@ -218,17 +219,17 @@ public class StepService extends Service implements SensorEventListener {
         for (Challenge c: challenges) {
 
             if (c.objectiveReached) {
-                Log.d(tag, "objective already reached");
+                // Log.d(tag, "objective already reached");
                 continue;
             }
 
             if (!c.accepted) {
-                Log.d(tag, "challenge not accepted");
+                // Log.d(tag, "challenge not accepted");
                 continue;
             }
 
             if (!(rec.ts > c.tsBegin && rec.ts < c.tsEnd)) {
-                Log.d(tag, "challenge not active");
+                // Log.d(tag, "challenge not active");
                 continue;
             }
 
@@ -240,15 +241,15 @@ public class StepService extends Service implements SensorEventListener {
 
             int nStep = rec.stepMidnight - nStepBefore;
 
+            challengeDao.updateStepCount(c, nStep);
+
             if (nStep < c.objective) {
-                Log.d(tag, "not enough steps");
+                // Log.d(tag, "not enough steps");
                 continue;
             }
 
-            Log.d(tag, "objective reached");
-
             // Update reward's 'objectiveReached' flag
-            challengeDao.challengeObjectiveHasBeenReached(c, rec);
+            challengeDao.objectiveHasBeenReached(c, rec);
 
             // Send notification
             sendNotificationObjectiveReached(c);

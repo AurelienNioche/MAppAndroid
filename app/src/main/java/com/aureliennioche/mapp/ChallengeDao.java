@@ -71,18 +71,25 @@ public interface ChallengeDao {
         challengeHasBeenCashedOut(challenge.id, cashedOutTs, generateStringTag());
     }
 
-    @Query("UPDATE Challenge SET acceptedTs = :ts, androidTag = :uuid WHERE id = :challengeId")
-    void challengeHasBeenAccepted(int challengeId, long ts, String uuid);
+    @Query("UPDATE Challenge SET accepted = :accepted, acceptedTs = :acceptedTs, androidTag = :uuid WHERE id = :challengeId")
+    void challengeHasBeenAccepted(int challengeId, boolean accepted, long acceptedTs, String uuid);
 
     default void challengeHasBeenAccepted(Challenge challenge) {
-        challengeHasBeenAccepted(challenge.id, System.currentTimeMillis(), generateStringTag());
+        challengeHasBeenAccepted(challenge.id, true, System.currentTimeMillis(), generateStringTag());
     }
 
     @Query("UPDATE Challenge SET objectiveReached = 1, objectiveReachedTs = :ts, androidTag = :uuid WHERE id = :challengeId")
-    void challengeObjectiveHasBeenReached(int challengeId, long ts, String uuid);
+    void objectiveHasBeenReached(int challengeId, long ts, String uuid);
 
-    default void challengeObjectiveHasBeenReached(Challenge challenge, Step step) {
-        challengeObjectiveHasBeenReached(challenge.id, step.ts, generateStringTag());
+    default void objectiveHasBeenReached(Challenge challenge, Step step) {
+        objectiveHasBeenReached(challenge.id, step.ts, generateStringTag());
+    }
+
+    @Query("UPDATE Challenge SET stepCount = :stepCount,  androidTag = :uuid WHERE id = :challengeId")
+    void updateStepCount(int challengeId, int stepCount, String uuid);
+
+    default void updateStepCount(Challenge challenge, int stepCount) {
+        updateStepCount(challenge.id, stepCount, generateStringTag());
     }
 
     @Query("DELETE FROM Challenge")

@@ -36,7 +36,7 @@ public interface InteractionDao {
         interaction.ts = System.currentTimeMillis();
         interaction.event = event;
         insert(interaction);
-        Log.d("testing", "recording interaction");
+        // Log.d("testing", "recording interaction");
         deleteRecordsTooOld();
     }
 

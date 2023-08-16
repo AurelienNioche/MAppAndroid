@@ -8,7 +8,7 @@ public class ConfigAndroid {
     // Macbook pro at home: "ws://192.168.0.14:8080/ws"
     // wss://c2fe-130-209-153-108.ngrok-free.app/ws
     // wss://samoa.dcs.gla.ac.uk/mapp/ws
-    public static final String websocketUrl="wss://4a4e-130-209-157-52.ngrok-free.app/ws"; //TODO: Be sure to set that correctly for production
+    public static final String websocketUrl="wss://d677-2001-630-40-70e0-00-2759.ngrok-free.app/ws"; //TODO: Be sure to set that correctly for production
     public static boolean askServerToResetUser = false; //TODO: Be sure to put it to `false` for production
     //TODO: Check as well the Unity settings
     public static String appVersion = "2023.08.08";
@@ -18,9 +18,9 @@ public class ConfigAndroid {
     public static boolean initWithStepRecords = true; //TODO: Check that for production
     public static boolean initWithStatus = true; //TODO: Check that for production
     static final boolean eraseProfileTableAfterUpdate = true; //TODO: Be sure to set that correctly for production
-    static final boolean eraseRewardTableAfterUpdate = true; //TODO: Be sure to set that correctly for production
-    static final boolean eraseStepRecordTableAfterUpdate = true; //TODO: Be sure to set that correctly for production
+    static final boolean eraseChallengeTableAfterUpdate = true; //TODO: Be sure to set that correctly for production
+    static final boolean eraseStepTableAfterUpdate = true; //TODO: Be sure to set that correctly for production
     static final boolean eraseStatusTableAfterUpdate = true; //TODO: Be sure to set that correctly for production
     static final boolean eraseInteractionTableAfterUpdate = true; //TODO: Be sure to set that correctly for production
-    public static int maxChallengesPerDay = 3;
+    public static long serverUpdateRepeatInterval = 15;  // In minutes, can not be lower than 15
 }

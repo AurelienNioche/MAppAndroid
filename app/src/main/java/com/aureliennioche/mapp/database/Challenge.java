@@ -1,4 +1,4 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.database;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;

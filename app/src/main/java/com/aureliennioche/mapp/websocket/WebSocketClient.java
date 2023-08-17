@@ -1,8 +1,6 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.websocket;
 
-
-
-import static com.aureliennioche.mapp.Status.EXPERIMENT_NOT_STARTED;
+import static com.aureliennioche.mapp.database.Status.EXPERIMENT_NOT_STARTED;
 
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
@@ -18,6 +16,19 @@ import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
+import com.aureliennioche.mapp.config.Config;
+import com.aureliennioche.mapp.database.Interaction;
+import com.aureliennioche.mapp.database.MAppDatabase;
+import com.aureliennioche.mapp.step.StepService;
+import com.aureliennioche.mapp.dao.ChallengeDao;
+import com.aureliennioche.mapp.dao.InteractionDao;
+import com.aureliennioche.mapp.dao.ProfileDao;
+import com.aureliennioche.mapp.dao.StatusDao;
+import com.aureliennioche.mapp.dao.StepDao;
+import com.aureliennioche.mapp.database.Challenge;
+import com.aureliennioche.mapp.database.Profile;
+import com.aureliennioche.mapp.database.Status;
+import com.aureliennioche.mapp.database.Step;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,9 +48,14 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
 
-class WebSocketClient extends WebSocketListener {
+public class WebSocketClient extends WebSocketListener {
+    public static final String BROADCAST_CONNECTION_INFO = "BROADCAST_CONNECTION_INFO";
+    public static final String BROADCAST_LOGIN_INFO = "BROADCAST_LOGIN_INFO";
+    public static final String LOGIN_INFO = "LOGIN_INFO";
+    public static final String CONNECTION_INFO = "CONNECTION_INFO";
+    public static final String BROADCAST_SEND_MESSAGE = "BROADCAST_SEND_MESSAGE";
+    public static final String MESSAGE_TO_SEND = "MESSAGE_TO_SEND";
     private static WebSocketClient instance;
-    static final String TAG = "testing";
     static final long DEFAULT_SERVER_LAST_RECORD_TIMESTAMP_MILLISECOND = -1;
     static final long DEFAULT_SERVER_LAST_INTERACTION_TIMESTAMP_MILLISECOND = -1;
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -70,7 +86,7 @@ class WebSocketClient extends WebSocketListener {
     }
 
     void backgroundSync() {
-        PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(UploadWorker.class, ConfigAndroid.serverUpdateRepeatInterval, TimeUnit.MINUTES)
+        PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(UploadWorker.class, Config.serverUpdateRepeatInterval, TimeUnit.MINUTES)
                 // Constraints
                 .build();
         WorkManager workManager = WorkManager.getInstance(this.stepService.getBaseContext());
@@ -78,6 +94,8 @@ class WebSocketClient extends WebSocketListener {
     }
 
     public void start(StepService stepService) {
+
+        // Log.d("testing", "Starting websocket client");
 
         this.stepService = stepService;
 
@@ -93,14 +111,14 @@ class WebSocketClient extends WebSocketListener {
     }
 
     public void startWebSocket() {
-        // Log.d(TAG, "Starting web socket");
+        // Log.d("testing", "Starting web socket itself");
 
         OkHttpClient client = new OkHttpClient.Builder()
                 .readTimeout(0,  TimeUnit.MILLISECONDS)
                 .build();
 
         Request request = new Request.Builder()
-                .url(ConfigAndroid.websocketUrl)
+                .url(Config.websocketUrl)
                 .build();
         client.newWebSocket(request, this);
 
@@ -109,13 +127,8 @@ class WebSocketClient extends WebSocketListener {
     }
 
     @Override public void onOpen(@NonNull WebSocket webSocket, @NonNull Response response) {
-        // TAG, "websocket open!");
-        // webSocket.send("Hello...");
-        // webSocket.send("...World!");
-        // webSocket.send(ByteString.decodeHex("deadbeef"));
-        // webSocket.close(1000, "Goodbye, World!");
+        // Log.d("testing", "websocket open!");
         ws = webSocket;
-
         broadcastConnection();
         backgroundSync();
     }
@@ -133,16 +146,17 @@ class WebSocketClient extends WebSocketListener {
                 ExerciseResponse er = mapper.readValue(
                         text, new TypeReference<ExerciseResponse>() {});
                 handleExerciseResponse(er);
-            } else {
-                // Log.d(TAG, "Server response not parsed!!!!!");
             }
+//            else {
+//                // Log.d(TAG, "Server response not parsed!!!!!");
+//            }
 
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
 
-    @Override public void onMessage(@NonNull WebSocket webSocket, ByteString bytes) {
+    @Override public void onMessage(@NonNull WebSocket webSocket, @NonNull ByteString bytes) {
         // Log.d(TAG, "MESSAGE bytes: " + bytes.hex());
     }
 
@@ -164,7 +178,7 @@ class WebSocketClient extends WebSocketListener {
         Handler handler = new Handler(Looper.getMainLooper());
         // Define the code block to be executed
         // Log.d(TAG, "Trying to reconnect server");
-        handler.postDelayed(this::startWebSocket, ConfigAndroid.delayServerReconnection);
+        handler.postDelayed(this::startWebSocket, Config.delayServerReconnection);
     }
 
     public void close() {
@@ -177,70 +191,63 @@ class WebSocketClient extends WebSocketListener {
     public void syncServer() {
         // Log.d(TAG, "I'll try to sync the server");
 
-        if (!profileDao.isProfileSet()) {
-            // Log.d(TAG, "Profile not set yet, I'll just skip");
+        if (!profileDao.isProfileSet() || !isOpen() || !Config.updateServer) {
             return;
         }
 
-        if (isOpen() && ConfigAndroid.updateServer) {
 
-            // Get last step records
-            List<Step> newRecord;
-            if (serverLastRecordTimestampMillisecond == DEFAULT_SERVER_LAST_RECORD_TIMESTAMP_MILLISECOND) {
-                newRecord = new ArrayList<>();
-            } else {
-                newRecord = stepDao.getRecordsNewerThan(serverLastRecordTimestampMillisecond);
-            }
-
-            // Get last interaction records
-            List<Interaction> newInteractions;
-            if (serverLastInteractionTimestampMillisecond == DEFAULT_SERVER_LAST_INTERACTION_TIMESTAMP_MILLISECOND) {
-                newInteractions = new ArrayList<>();
-            } else {
-                newInteractions = interactionDao.getInteractionsNewerThan(serverLastInteractionTimestampMillisecond);
-            }
-
-            // Get un-synchronized rewards;
-            List<Challenge> challenges = challengeDao.getUnsyncedChallenges();
-
-            // Get username and status
-            String username = profileDao.getUsername();
-            Status status = statusDao.getStatus();
-
-            // Json-ify
-            String recordsJson;
-            String unSyncRewards;
-            String statusJson;
-            String interactionsJson;
-            try {
-                recordsJson =  mapper.writeValueAsString(newRecord);
-                unSyncRewards = mapper.writeValueAsString(challenges);
-                interactionsJson =  mapper.writeValueAsString(newInteractions);
-                statusJson = mapper.writeValueAsString(status);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-
-            // Build the request object
-            ExerciseRequest er =  new ExerciseRequest();
-            er.appVersion = ConfigAndroid.appVersion;
-            er.username = username;
-            er.interactions = interactionsJson;
-            er.records = recordsJson;
-            er.status = statusJson;
-            er.unsyncedChallenges = unSyncRewards;
-
-            try {
-                String requestJson =  mapper.writeValueAsString(er);
-                ws.send(requestJson);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-
+        // Get last step records
+        List<Step> newRecord;
+        if (serverLastRecordTimestampMillisecond == DEFAULT_SERVER_LAST_RECORD_TIMESTAMP_MILLISECOND) {
+            newRecord = new ArrayList<>();
+        } else {
+            newRecord = stepDao.getRecordsNewerThan(serverLastRecordTimestampMillisecond);
         }
-//        else {
-//            // Log.d(TAG, "Websocket not connected or debug mode, I'll skip");
-//        }
+
+        // Get last interaction records
+        List<Interaction> newInteractions;
+        if (serverLastInteractionTimestampMillisecond == DEFAULT_SERVER_LAST_INTERACTION_TIMESTAMP_MILLISECOND) {
+            newInteractions = new ArrayList<>();
+        } else {
+            newInteractions = interactionDao.getInteractionsNewerThan(serverLastInteractionTimestampMillisecond);
+        }
+
+        // Get un-synchronized rewards;
+        List<Challenge> challenges = challengeDao.getUnsyncedChallenges();
+
+        // Get username and status
+        String username = profileDao.getUsername();
+        Status status = statusDao.getStatus();
+
+        // Json-ify
+        String recordsJson;
+        String unSyncRewards;
+        String statusJson;
+        String interactionsJson;
+        try {
+            recordsJson =  mapper.writeValueAsString(newRecord);
+            unSyncRewards = mapper.writeValueAsString(challenges);
+            interactionsJson =  mapper.writeValueAsString(newInteractions);
+            statusJson = mapper.writeValueAsString(status);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Build the request object
+        ExerciseRequest er =  new ExerciseRequest();
+        er.appVersion = Config.appVersion;
+        er.username = username;
+        er.interactions = interactionsJson;
+        er.records = recordsJson;
+        er.status = statusJson;
+        er.unsyncedChallenges = unSyncRewards;
+
+        try {
+            String requestJson =  mapper.writeValueAsString(er);
+            ws.send(requestJson);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     void handleExerciseResponse(
@@ -271,7 +278,7 @@ class WebSocketClient extends WebSocketListener {
 
             // Setup status
             Status s;
-            if (ConfigAndroid.initWithStatus) {
+            if (Config.initWithStatus) {
                 // Log.d("testing", "handleLoginResponse initWithStatus");
                 s = mapper.readValue(statusJson,
                         new TypeReference<Status>(){});
@@ -284,7 +291,7 @@ class WebSocketClient extends WebSocketListener {
 
             // Log.d("testing", "handleLoginResponse insert steps");
             // Set up record steps
-            if (ConfigAndroid.initWithStepRecords) {
+            if (Config.initWithStepRecords) {
                 List<Step> steps =
                         mapper.readValue(stepRecordListJson,
                                 new TypeReference<List<Step>>(){});
@@ -342,19 +349,19 @@ class WebSocketClient extends WebSocketListener {
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     public void setupBroadcasterReceiver() {
-        IntentFilter filter = new IntentFilter("WEBSOCKET_SEND");
+        IntentFilter filter = new IntentFilter(BROADCAST_SEND_MESSAGE);
 
         BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 // Log.d(TAG, "WebSocketClient => Received a broadcast for sending a message");
-                String msg = intent.getStringExtra("message");
+                String msg = intent.getStringExtra(MESSAGE_TO_SEND);
                 send(msg);
             }
         };
         stepService.registerReceiver(receiver, filter);
 
-        filter = new IntentFilter("WEBSOCKET_CONNECTION_INFO");
+        filter = new IntentFilter(BROADCAST_CONNECTION_INFO);
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -380,7 +387,7 @@ class WebSocketClient extends WebSocketListener {
                     // Log.d(TAG, "I will try back");
                     // Repeat this the same runnable code block again another 2 seconds
                     // 'this' is referencing the Runnable object
-                    handler.postDelayed(this, ConfigAndroid.delaySendRetry);
+                    handler.postDelayed(this, Config.delaySendRetry);
                 }
             }
         };
@@ -391,7 +398,7 @@ class WebSocketClient extends WebSocketListener {
     void broadcastConnection() {
         // Log.d(TAG, "Send broadcast for connection");
         boolean webSocketOpen = ws != null;
-        Intent broadcastIntent = new Intent("MAIN_UNITY_ACTIVITY_CONNECTION_INFO");
+        Intent broadcastIntent = new Intent(BROADCAST_CONNECTION_INFO);
         ConnectionInfo ci = new ConnectionInfo();
         ci.connected = webSocketOpen;
         String ciJson;
@@ -400,7 +407,7 @@ class WebSocketClient extends WebSocketListener {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-        broadcastIntent.putExtra("connectionInfoJson", ciJson);
+        broadcastIntent.putExtra(CONNECTION_INFO, ciJson);
         // Log.d(TAG, "Connection info: " + ciJson);
         stepService.sendBroadcast(broadcastIntent);
     }
@@ -410,8 +417,30 @@ class WebSocketClient extends WebSocketListener {
         LoginInfo li = new LoginInfo();
         li.loginOk = loginResponse.ok;
         String liJson = mapper.writeValueAsString(li);
-        Intent broadcastIntent = new Intent("MAIN_UNITY_ACTIVITY_LOGIN_INFO");
-        broadcastIntent.putExtra("loginInfoJson", liJson);
+        Intent broadcastIntent = new Intent(BROADCAST_LOGIN_INFO);
+        broadcastIntent.putExtra(LOGIN_INFO, liJson);
         stepService.sendBroadcast(broadcastIntent);
+    }
+
+    public void scheduleSync() {
+        final long SYNC_INTERVAL = TimeUnit.MINUTES.toMillis(Config.serverUpdateRepeatIntervalWhenAppOpened); // 5 minutes in milliseconds
+
+        // Log.d("testing", "Launching sync");
+        // Create a handler to run the sync task
+        final Handler handler = new Handler();
+        Runnable syncTask = new Runnable() {
+            @Override
+            public void run() {
+                // Perform the sync operation here
+                Log.d("testing", "Syncing call from scheduleSync");
+                syncServer();
+
+                // Schedule the next sync
+                handler.postDelayed(this, SYNC_INTERVAL);
+            }
+        };
+
+        // Schedule the first sync
+        handler.postDelayed(syncTask, SYNC_INTERVAL);
     }
 }

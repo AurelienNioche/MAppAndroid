@@ -1,4 +1,4 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.step;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -14,12 +14,20 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Binder;
 import android.os.IBinder;
-import android.util.Log;
-import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+
+import com.aureliennioche.mapp.config.Config;
+import com.aureliennioche.mapp.database.MAppDatabase;
+import com.aureliennioche.mapp.R;
+import com.aureliennioche.mapp.activity.MainUnityActivity;
+import com.aureliennioche.mapp.dao.ChallengeDao;
+import com.aureliennioche.mapp.dao.StepDao;
+import com.aureliennioche.mapp.database.Challenge;
+import com.aureliennioche.mapp.database.Step;
+import com.aureliennioche.mapp.websocket.WebSocketClient;
 
 import org.joda.time.DateTime;
 
@@ -31,7 +39,6 @@ public class StepService extends Service implements SensorEventListener {
     private static final String NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID = "NOTIFICATION_CHANNEL_BACKGROUND_TASK_ID";
     private static final String NOTIFICATION_CHANNEL_OBJ_REACHED_ID = "NOTIFICATION_CHANNEL_OBJ_REACHED_ID";
 
-    public static final String tag = "testing";
     // public boolean appVisibleOnScreen;
     SensorManager sensorManager;
     StepDao stepDao;
@@ -43,7 +50,7 @@ public class StepService extends Service implements SensorEventListener {
     private final IBinder binder = new LocalBinder();
 
     public class LocalBinder extends Binder {
-        StepService getService() {
+        public StepService getService() {
             // Return this instance of LocalService so clients can call public methods.
             return StepService.this;
         }
@@ -93,20 +100,20 @@ public class StepService extends Service implements SensorEventListener {
         // Notification ID cannot be 0.
         startForeground(ONGOING_NOTIFICATION_ID, notification);
 
+        ws.scheduleSync(); // For when app is open only // TODO: DEBUG THIS NEW FEATURE
+
         // If we get killed, after returning from here, restart
         return START_STICKY;
     }
 
     @Override
     public IBinder onBind(Intent intent) {
-        // Log.d(tag, "StepService => onBind");
         return binder;
     }
 
     @Override
     public void onDestroy() {
-        // Log.d(tag, "StepService => onDestroy => Service destroyed");
-        Toast.makeText(this, "MApp step counter service has been killed!", Toast.LENGTH_SHORT).show();
+        // Toast.makeText(this, "MApp step counter service has been killed!", Toast.LENGTH_SHORT).show();
         if (sensorManager != null) {
             sensorManager.unregisterListener(this);
         }
@@ -154,7 +161,7 @@ public class StepService extends Service implements SensorEventListener {
 
         // Extra stuff for notifying the activity in case the user clicked on it
         notificationIntent.setAction(Intent.ACTION_SEND);  // DON'T REMOVE. NECESSARY FOR AN OBSCURE REASON
-        notificationIntent.putExtra("LAUNCHED_FROM_NOTIFICATION", challenge.id);
+        notificationIntent.putExtra(MainUnityActivity.LAUNCHED_FROM_NOTIFICATION, challenge.id);
 
         PendingIntent pendingIntent =
                 PendingIntent.getActivity(
@@ -181,15 +188,11 @@ public class StepService extends Service implements SensorEventListener {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             notificationManager.notify(notificationId, builder.build());
         }
-        // else {
-            // Log.d(tag, "notification not authorized");
-        // }
     }
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
         int sensorValue = (int) sensorEvent.values[0];
-        // Log.d(tag, "onSensorChanged: " + sensorValue);
         Step rec = stepDao.recordNewSensorValue(sensorValue);
         checkIfObjectiveIsReached(rec);
     }
@@ -202,34 +205,21 @@ public class StepService extends Service implements SensorEventListener {
         Sensor countSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
         if (countSensor!=null){
             sensorManager.registerListener(this,countSensor,SensorManager.SENSOR_DELAY_UI);
-        } else {
-            Log.e(tag, "initSensorManager => Sensor not found");
         }
-        // Log.d(tag, "initSensorManager => Sensor manager initialized");
     }
 
     void checkIfObjectiveIsReached(Step rec) {
 
         long tsNow = System.currentTimeMillis();
-        long dayBegins = new DateTime(tsNow, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+        long dayBegins = new DateTime(tsNow, Config.tz).withTimeAtStartOfDay().getMillis();
         long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
 
         List<Challenge> challenges = challengeDao.dayChallenges(dayBegins, dayEnds);
 
         for (Challenge c: challenges) {
 
-            if (c.objectiveReached) {
+            if (c.objectiveReached || !c.accepted || !(rec.ts > c.tsBegin && rec.ts < c.tsEnd)) {
                 // Log.d(tag, "objective already reached");
-                continue;
-            }
-
-            if (!c.accepted) {
-                // Log.d(tag, "challenge not accepted");
-                continue;
-            }
-
-            if (!(rec.ts > c.tsBegin && rec.ts < c.tsEnd)) {
-                // Log.d(tag, "challenge not active");
                 continue;
             }
 

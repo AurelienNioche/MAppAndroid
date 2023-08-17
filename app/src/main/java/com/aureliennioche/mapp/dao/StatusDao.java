@@ -1,4 +1,4 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.dao;
 
 import androidx.room.Dao;
 import androidx.room.Insert;
@@ -6,10 +6,7 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Update;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
-import java.util.Locale;
+import com.aureliennioche.mapp.database.Status;
 
 @Dao
 public interface StatusDao {

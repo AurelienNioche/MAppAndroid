@@ -1,11 +1,16 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.database;
 
 import android.content.Context;
-import android.util.Log;
 
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+
+import com.aureliennioche.mapp.dao.ChallengeDao;
+import com.aureliennioche.mapp.dao.InteractionDao;
+import com.aureliennioche.mapp.dao.ProfileDao;
+import com.aureliennioche.mapp.dao.StatusDao;
+import com.aureliennioche.mapp.dao.StepDao;
 
 @Database(entities = {
         Status.class,

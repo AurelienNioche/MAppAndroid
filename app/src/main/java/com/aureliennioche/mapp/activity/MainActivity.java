@@ -1,4 +1,4 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.activity;
 
 import android.Manifest;
 import android.content.ComponentName;
@@ -10,7 +10,6 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.util.Log;
 import android.view.View;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -18,14 +17,21 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
-import org.joda.time.DateTimeZone;
+import com.aureliennioche.mapp.BuildConfig;
+import com.aureliennioche.mapp.R;
+import com.aureliennioche.mapp.config.Config;
+import com.aureliennioche.mapp.database.MAppDatabase;
+import com.aureliennioche.mapp.step.StepService;
+import com.aureliennioche.mapp.dao.ChallengeDao;
+import com.aureliennioche.mapp.dao.InteractionDao;
+import com.aureliennioche.mapp.dao.ProfileDao;
+import com.aureliennioche.mapp.dao.StatusDao;
+import com.aureliennioche.mapp.dao.StepDao;
 
 
 public class MainActivity extends AppCompatActivity {
 
-    static final String tag = "testing";  // this.getClass().getSimpleName();
     static StepService stepService;
-    static final DateTimeZone tz = DateTimeZone.forID(ConfigAndroid.timezoneId);
     ActivityResultLauncher<Intent> startActivityIntent = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {});
@@ -62,15 +68,9 @@ public class MainActivity extends AppCompatActivity {
 
         View decorView = getWindow().getDecorView();
         // Hide both the navigation bar and the status bar.
-        // SYSTEM_UI_FLAG_FULLSCREEN is only available on Android 4.1 and higher, but as
-        // a general rule, you should design your app to hide the status bar whenever you
-        // hide the navigation bar.
         int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_FULLSCREEN;
         decorView.setSystemUiVisibility(uiOptions);
-
-        // Log.d(tag, "MainActivity => Start the MainActivity");
-        // Log.d(tag, "Timezone " + tz.toString());
 
         checkVersionAndCleanUpIfNecessary();
         checkPermissions();
@@ -108,24 +108,24 @@ public class MainActivity extends AppCompatActivity {
         MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
 
         // Only if upgrade or new install
-        if (ConfigAndroid.eraseChallengeTableAfterUpdate) {
+        if (Config.eraseChallengeTableAfterUpdate) {
             // Log.d(tag, "Deleting previously existing tables");
             ChallengeDao challengeDao = db.rewardDao();
             challengeDao.nukeTable();
         }
-        if (ConfigAndroid.eraseStepTableAfterUpdate) {
+        if (Config.eraseStepTableAfterUpdate) {
             StepDao stepDao = db.stepDao();
             stepDao.nukeTable();
         }
-        if (ConfigAndroid.eraseStatusTableAfterUpdate) {
+        if (Config.eraseStatusTableAfterUpdate) {
             StatusDao statusDao = db.statusDao();
             statusDao.nukeTable();
         }
-        if (ConfigAndroid.eraseProfileTableAfterUpdate) {
+        if (Config.eraseProfileTableAfterUpdate) {
             ProfileDao profileDao = db.profileDao();
             profileDao.nukeTable();
         }
-        if (ConfigAndroid.eraseInteractionTableAfterUpdate) {
+        if (Config.eraseInteractionTableAfterUpdate) {
             InteractionDao interactionDao = db.interactionDao();
             interactionDao.nukeTable();
         }
@@ -174,9 +174,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         // Log.d(tag, "MainActivity => onResume");
     }
-
-    // ----------------------------------------- //
-
 
     public void checkPermissions() {
         // Begin by requesting the notification permission

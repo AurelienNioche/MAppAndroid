@@ -1,12 +1,4 @@
-package com.aureliennioche.mapp;
-
-import static com.aureliennioche.mapp.Status.EXPERIMENT_NOT_STARTED;
-import static com.aureliennioche.mapp.Status.ONGOING_CHALLENGE;
-import static com.aureliennioche.mapp.Status.WAITING_FOR_CHALLENGE_TO_START;
-import static com.aureliennioche.mapp.Status.WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
-import static com.aureliennioche.mapp.Status.WAITING_FOR_USER_TO_ACCEPT;
-import static com.aureliennioche.mapp.Status.WAITING_FOR_USER_TO_CASH_OUT;
-import static com.aureliennioche.mapp.Status.EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+package com.aureliennioche.mapp.activity;
 
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
@@ -18,24 +10,36 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
-
 import androidx.core.app.NotificationManagerCompat;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.unity3d.player.UnityPlayer;
-import com.unity3d.player.UnityPlayerActivity;
-
 import org.joda.time.DateTime;
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import com.aureliennioche.mapp.websocket.WebSocketClient;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import com.unity3d.player.UnityPlayer;
+import com.unity3d.player.UnityPlayerActivity;
+
+import com.aureliennioche.mapp.config.Config;
+import com.aureliennioche.mapp.config.ConfigUnity;
+import com.aureliennioche.mapp.database.Interaction;
+import com.aureliennioche.mapp.websocket.LoginRequest;
+import com.aureliennioche.mapp.database.MAppDatabase;
+import com.aureliennioche.mapp.dao.ChallengeDao;
+import com.aureliennioche.mapp.dao.InteractionDao;
+import com.aureliennioche.mapp.dao.ProfileDao;
+import com.aureliennioche.mapp.dao.StatusDao;
+import com.aureliennioche.mapp.dao.StepDao;
+import com.aureliennioche.mapp.database.Challenge;
+import com.aureliennioche.mapp.database.Status;
+
 public class MainUnityActivity extends UnityPlayerActivity {
-    public static final String tag = "testing";
+    public static final String LAUNCHED_FROM_NOTIFICATION = "LAUNCHED_FROM_NOTIFICATION";
     private static final ObjectMapper mapper = new ObjectMapper();
     public static MainUnityActivity instance = null;  // From "Unity As A Library" demo
     StepDao stepDao;
@@ -46,7 +50,12 @@ public class MainUnityActivity extends UnityPlayerActivity {
     boolean loginChecked;
     boolean loginOk;
 
-    // ------------------------------------------------------------------------------------
+    public static class UserAction {
+        public static final String CASH_OUT = "cashOut";
+        public static final String ACCEPT = "accept";
+        public static final String OPEN_FROM_NOTIFICATION = "openFromNotification";
+        public static final String NONE = "none";
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,8 +80,6 @@ public class MainUnityActivity extends UnityPlayerActivity {
         handleIntent(intentUnityPlayer);
 
         instance = this;
-
-        // finishAndRemoveTask();
     }
 
     // --------------------------------------------------------------------------------------------
@@ -99,13 +106,13 @@ public class MainUnityActivity extends UnityPlayerActivity {
         loginChecked = false; // Reset flags
         loginOk = false; // Reset flags
         LoginRequest lr = new LoginRequest();
-        lr.appVersion = ConfigAndroid.appVersion;
-        lr.resetUser = ConfigAndroid.askServerToResetUser;
+        lr.appVersion = Config.appVersion;
+        lr.resetUser = Config.askServerToResetUser;
         lr.username = username;
         String lrJson = mapper.writeValueAsString(lr);
 
-        Intent broadcastIntent = new Intent("WEBSOCKET_SEND");
-        broadcastIntent.putExtra("message", lrJson);
+        Intent broadcastIntent = new Intent(WebSocketClient.BROADCAST_SEND_MESSAGE);
+        broadcastIntent.putExtra(WebSocketClient.MESSAGE_TO_SEND, lrJson);
         sendBroadcast(broadcastIntent);
     }
 
@@ -121,7 +128,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
     }
 
     long getBeginningOfTheDay(long ts) {
-        return new DateTime(ts, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+        return new DateTime(ts, Config.tz).withTimeAtStartOfDay().getMillis();
     }
 
     long getBeginningOfTheDay() {
@@ -160,7 +167,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
     }
 
     void ifExperimentEnded(Status status) {
-        status.state = EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
+        status.state = Status.EXPERIMENT_ENDED_AND_ALL_CASH_OUT;
         status.ts = System.currentTimeMillis();
     }
 
@@ -185,8 +192,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 status.currentChallenge++;
             }
 
-            // Got to next stage;
-            status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
+            // Got to next stage
             ifWaitingForNextChallengeProposal(status);
         }
     }
@@ -219,16 +225,16 @@ public class MainUnityActivity extends UnityPlayerActivity {
                 break;
             }
         }
-        status.state = WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
+        status.state = Status.WAITING_FOR_NEXT_CHALLENGE_PROPOSAL;
         status.ts = System.currentTimeMillis();
         // Log.d(tag, "MainUnityActivity => Still waiting for next challenge proposal");
     }
 
     void ifWaitingForUserToAccept(Status status, String userAction) {
-        status.state = WAITING_FOR_USER_TO_ACCEPT;
+        status.state = Status.WAITING_FOR_USER_TO_ACCEPT;
 
         long tsNow = System.currentTimeMillis();
-        long dayBegins = new DateTime(tsNow, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+        long dayBegins = new DateTime(tsNow, Config.tz).withTimeAtStartOfDay().getMillis();
         long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
         long tsExpEnds = challengeDao.getTsExpEnds();
         boolean experimentEnded = tsNow >= tsExpEnds;
@@ -257,7 +263,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
     }
 
     void ifWaitingForChallengeToStart(Status status) {
-        status.state = WAITING_FOR_CHALLENGE_TO_START;
+        status.state = Status.WAITING_FOR_CHALLENGE_TO_START;
 
         long tsNow = System.currentTimeMillis();
         long dayBegin = getBeginningOfTheDay();
@@ -270,7 +276,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
             }
         }
         status.ts = tsNow;
-        long dayBegins = new DateTime(tsNow, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+        long dayBegins = new DateTime(tsNow, Config.tz).withTimeAtStartOfDay().getMillis();
         long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
         long tsExpEnds = challengeDao.getTsExpEnds();
         boolean experimentEnded = tsNow >= tsExpEnds;
@@ -280,31 +286,28 @@ public class MainUnityActivity extends UnityPlayerActivity {
         if (experimentEnded) {
             ifExperimentEnded(status);
             return;
-        } else {
-            challenge = status.challenges.get(status.currentChallenge);
         }
+        challenge = status.challenges.get(status.currentChallenge);
 
-        if (tsNow < challenge.tsBegin) {
-            return;
-            // Log.d(tag, "MainUnityActivity => Still waiting for challenge to start");
-        } else if (tsNow < challenge.tsEnd) {
-            status.state = ONGOING_CHALLENGE;
-        } else {
-            // User missed the challenge
-            if (status.currentChallenge < status.challenges.size() - 1) {
-                status.currentChallenge++;
+        if (tsNow >= challenge.tsBegin) {
+            if (tsNow < challenge.tsEnd) {
+                status.state = Status.ONGOING_CHALLENGE;
+            } else {
+                // User missed the challenge
+                if (status.currentChallenge < status.challenges.size() - 1) {
+                    status.currentChallenge++;
+                }
+                ifWaitingForNextChallengeProposal(status);
             }
-
-            ifWaitingForNextChallengeProposal(status);
         }
     }
 
     void ifOngoingChallenge(Status status) {
 
-        status.state = ONGOING_CHALLENGE;
+        status.state = Status.ONGOING_CHALLENGE;
 
         long refTs = status.ts;
-        long dayBegins = new DateTime(refTs, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+        long dayBegins = new DateTime(refTs, Config.tz).withTimeAtStartOfDay().getMillis();
         long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
 
         long tsNow = System.currentTimeMillis();
@@ -339,31 +342,31 @@ public class MainUnityActivity extends UnityPlayerActivity {
         }
 
         switch (status.state) {
-            case EXPERIMENT_NOT_STARTED:
+            case Status.EXPERIMENT_NOT_STARTED:
                 ifExperimentNotStarted(status);
                 break;
 
-            case WAITING_FOR_NEXT_CHALLENGE_PROPOSAL:
+            case Status.WAITING_FOR_NEXT_CHALLENGE_PROPOSAL:
                 ifWaitingForNextChallengeProposal(status);
                 break;
 
-            case WAITING_FOR_USER_TO_ACCEPT:
+            case Status.WAITING_FOR_USER_TO_ACCEPT:
                 ifWaitingForUserToAccept(status, userAction);
                 break;
 
-            case WAITING_FOR_CHALLENGE_TO_START:
+            case Status.WAITING_FOR_CHALLENGE_TO_START:
                 ifWaitingForChallengeToStart(status);
                 break;
 
-            case ONGOING_CHALLENGE:
+            case Status.ONGOING_CHALLENGE:
                 ifOngoingChallenge(status);
                 break;
 
-            case WAITING_FOR_USER_TO_CASH_OUT:
+            case Status.WAITING_FOR_USER_TO_CASH_OUT:
                 ifWaitingForUserToCashOut(status, userAction);
                 break;
 
-            case EXPERIMENT_ENDED_AND_ALL_CASH_OUT:
+            case Status.EXPERIMENT_ENDED_AND_ALL_CASH_OUT:
                 ifExperimentEnded(status);
                 break;
 
@@ -374,13 +377,13 @@ public class MainUnityActivity extends UnityPlayerActivity {
         }
 
         // Set the date
-        DateTime now = new DateTime(status.ts, MainActivity.tz);  // Convert to milliseconds
+        DateTime now = new DateTime(status.ts, Config.tz);  // Convert to milliseconds
         status.stepDay = stepDao.getStepNumberSinceMidnightThatDay(now.getMillis());
         status.dayOfTheWeek = now.dayOfWeek().getAsText(Locale.ENGLISH);
         status.dayOfTheMonth = now.dayOfMonth().getAsText(Locale.ENGLISH);
         status.month = now.monthOfYear().getAsText(Locale.ENGLISH);
 
-        status.tsAtStartOfDay = new DateTime(status.ts, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+        status.tsAtStartOfDay = new DateTime(status.ts, Config.tz).withTimeAtStartOfDay().getMillis();
 
         // Save the status
         statusDao.update(status);
@@ -412,29 +415,29 @@ public class MainUnityActivity extends UnityPlayerActivity {
             item.tsBegin /= 1000;
             item.tsEnd /= 1000;
         });
+        parentNode.set("challenges", mapper.valueToTree(challenges));
+        return mapper.writeValueAsString(parentNode);
 
         // ObjectNode childNode = mapper.createObjectNode();
         // childNode.set("challenges", mapper.valueToTree(challenges));
-        parentNode.set("challenges", mapper.valueToTree(challenges));
 
         // String toReturn = mapper.writeValueAsString(parentNode);
         // Log.d(tag, "Status AFTER updating" +toReturn);
         // Log.d(tag, "Status AFTER updating" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(parentNode));
-        return mapper.writeValueAsString(parentNode);
     }
 
     // ---------------------------------------------------------------------------
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     public void setupBroadcasterReceiver() {
-        IntentFilter filter = new IntentFilter("MAIN_UNITY_ACTIVITY_CONNECTION_INFO");
+        IntentFilter filter = new IntentFilter(WebSocketClient.BROADCAST_CONNECTION_INFO);
 
         BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 //do something based on the intent's action
                 // Log.d(tag,  "MainUnityActivity => Received broadcast for connection info");
-                String loginInfoJson = intent.getStringExtra("connectionInfoJson");
+                String loginInfoJson = intent.getStringExtra(WebSocketClient.CONNECTION_INFO);
                 UnityPlayer.UnitySendMessage("AndroidController", "SetConnectionInfo", loginInfoJson);
             }
         };
@@ -442,14 +445,14 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
         // --------------------------
 
-        filter = new IntentFilter("MAIN_UNITY_ACTIVITY_LOGIN_INFO");
+        filter = new IntentFilter(WebSocketClient.BROADCAST_LOGIN_INFO);
 
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 //do something based on the intent's action
                 // Log.d(tag,  "MainUnityActivity => Received broadcast");
-                String loginInfoJson = intent.getStringExtra("loginInfoJson");
+                String loginInfoJson = intent.getStringExtra(WebSocketClient.LOGIN_INFO);
                 UnityPlayer.UnitySendMessage("AndroidController", "SetLoginInfo", loginInfoJson);
             }
         };
@@ -511,7 +514,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
     void handleIntent(Intent intent) {
         if(intent == null || intent.getExtras() == null) return;
 
-        if (intent.getExtras().containsKey("UnityActivity => LAUNCHED_FROM_NOTIFICATION")) {
+        if (intent.getExtras().containsKey(LAUNCHED_FROM_NOTIFICATION)) {
             // Log.d(tag, "Opened from the notification corresponding to the reward id "+ intent.getExtras().getInt("LAUNCHED_FROM_NOTIFICATION"));
 
             // Record

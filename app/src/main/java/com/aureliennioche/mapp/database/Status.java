@@ -1,4 +1,4 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.database;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
@@ -28,6 +28,8 @@ public class Status {
     public static final String WAITING_FOR_USER_TO_CASH_OUT = "waitingForUserToCashOut";
     @Ignore
     public static final String EXPERIMENT_ENDED_AND_ALL_CASH_OUT = "experimentEndedAndAllCashOut";
+    @Ignore
+    public List<Challenge> challenges;
 
     @PrimaryKey(autoGenerate = true)
     public int id;
@@ -51,6 +53,4 @@ public class Status {
     public long ts;
     @ColumnInfo
     public long tsAtStartOfDay;
-    @Ignore
-    List<Challenge> challenges = new ArrayList<>();
 }

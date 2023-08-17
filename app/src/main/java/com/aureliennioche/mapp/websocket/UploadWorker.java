@@ -1,17 +1,10 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.websocket;
 
 import android.content.Context;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.List;
 
 public class UploadWorker extends Worker {
     public UploadWorker(

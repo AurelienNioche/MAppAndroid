@@ -1,10 +1,14 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.dao;
 
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
+
+import com.aureliennioche.mapp.config.Config;
+import com.aureliennioche.mapp.database.Challenge;
+import com.aureliennioche.mapp.database.Step;
 
 import org.joda.time.DateTime;
 
@@ -20,9 +24,6 @@ public interface ChallengeDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(Challenge challenge);
-
-    @Query("SELECT * FROM Challenge WHERE id = :id")
-    Challenge getChallenge(int id);
 
     @Query("SELECT * FROM Challenge ORDER BY tsBegin, objective LIMIT 1")
     Challenge getFirstChallenge();
@@ -50,12 +51,6 @@ public interface ChallengeDao {
 
     @Query("SELECT * FROM Challenge WHERE tsBegin >= :dayBegins AND tsBegin < :dayEnds AND objectiveReached = 0 AND objective <= :stepNumber ORDER BY objective")
     List<Challenge> notFlaggedObjectiveReachedChallenges(int stepNumber, long dayBegins, long dayEnds);
-
-    default List<Challenge> notFlaggedObjectiveReachedChallenges(Step step) {
-        long dayBegins = new DateTime(step.ts, MainActivity.tz).withTimeAtStartOfDay().getMillis();
-        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
-        return notFlaggedObjectiveReachedChallenges(step.stepMidnight, dayBegins, dayEnds);
-    }
 
     @Query("SELECT * FROM Challenge WHERE objectiveReached = 1 AND cashedOut = 0 ORDER BY tsOfferBegin")
     List<Challenge> challengesThatNeedCashOut();
@@ -103,17 +98,26 @@ public interface ChallengeDao {
 
     default long getTsExpBegins() {
         long ts = minTs();
-        DateTime dt = new DateTime(ts, MainActivity.tz);
+        DateTime dt = new DateTime(ts, Config.tz);
         return dt.withTimeAtStartOfDay().getMillis();
     }
 
     default long getTsExpEnds() {
         long ts = maxTs();
-        DateTime dt = new DateTime(ts, MainActivity.tz);
+        DateTime dt = new DateTime(ts, Config.tz);
         DateTime midnight = dt.withTimeAtStartOfDay();
         DateTime nextMidnight = midnight.plusDays(1);
         return nextMidnight.getMillis();
     }
+
+//    default List<Challenge> notFlaggedObjectiveReachedChallenges(Step step) {
+//        long dayBegins = new DateTime(step.ts, Config.tz).withTimeAtStartOfDay().getMillis();
+//        long dayEnds = dayBegins + TimeUnit.DAYS.toMillis(1);
+//        return notFlaggedObjectiveReachedChallenges(step.stepMidnight, dayBegins, dayEnds);
+//    }
+
+//    @Query("SELECT * FROM Challenge WHERE id = :id")
+//    Challenge getChallenge(int id);
 
 //    @Query("SELECT COUNT(id) FROM reward WHERE ts >= :dayBegins AND ts < :dayEnds AND objective > :refObjective")
 //    int countAccessibleRewardWithHigherObjective(int refObjective, long dayBegins, long dayEnds);

@@ -1,6 +1,4 @@
-package com.aureliennioche.mapp;
-
-import android.util.Log;
+package com.aureliennioche.mapp.dao;
 
 import androidx.room.Dao;
 import androidx.room.Insert;
@@ -9,6 +7,9 @@ import androidx.room.Query;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import com.aureliennioche.mapp.config.Config;
+import com.aureliennioche.mapp.database.Interaction;
 
 @Dao
 public interface InteractionDao {
@@ -27,7 +28,7 @@ public interface InteractionDao {
     void deleteRecordsOlderThan(long ref);
 
     default void deleteRecordsTooOld() {
-        long ref = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(ConfigAndroid.keepDataNoLongerThanXdays);
+        long ref = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(Config.keepDataNoLongerThanXdays);
         deleteRecordsOlderThan(ref);
     }
 

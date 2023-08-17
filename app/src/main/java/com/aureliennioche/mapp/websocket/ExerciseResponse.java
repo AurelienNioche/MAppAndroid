@@ -1,4 +1,4 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.websocket;
 
 public class ExerciseResponse {
     @SuppressWarnings("unused")

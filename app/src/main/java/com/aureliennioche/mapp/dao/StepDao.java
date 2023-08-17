@@ -1,13 +1,15 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.dao;
 
 import android.os.SystemClock;
-import android.util.Log;
 
 import androidx.room.Dao;
 import androidx.room.Ignore;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+
+import com.aureliennioche.mapp.config.Config;
+import com.aureliennioche.mapp.database.Step;
 
 import org.joda.time.DateTime;
 
@@ -38,7 +40,7 @@ public interface StepDao {
 
     default int getStepNumberSinceMidnightThatDay(long timestamp) {
 
-        DateTime dt = new DateTime(timestamp, MainActivity.tz);
+        DateTime dt = new DateTime(timestamp, Config.tz);
         DateTime midnight = dt.withTimeAtStartOfDay();
         DateTime nextMidnight = midnight.plusDays(1);
 
@@ -61,7 +63,7 @@ public interface StepDao {
         long timestamp = System.currentTimeMillis();
         long lastBootTimestamp = timestamp - SystemClock.elapsedRealtime();
 
-        long dayBegins = new DateTime(timestamp, MainActivity.tz).withTimeAtStartOfDay().getMillis();
+        long dayBegins = new DateTime(timestamp, Config.tz).withTimeAtStartOfDay().getMillis();
 
         int stepNumberSinceMidnight = 0; // Default if no recording, or no recording that day
 
@@ -99,7 +101,7 @@ public interface StepDao {
         // Log.d(tag, "recordNewSensorValue => step midnight " + rec.stepMidnight);
 
         // Delete
-        long bound = dayBegins - TimeUnit.DAYS.toMillis(ConfigAndroid.keepDataNoLongerThanXdays);
+        long bound = dayBegins - TimeUnit.DAYS.toMillis(Config.keepDataNoLongerThanXdays);
         deleteRecordsOlderThan(bound);
 
         // Delete older ones within a X min range (we assume we don't need data more than every X minutes)
@@ -110,12 +112,12 @@ public interface StepDao {
         return rec;
     }
 
-    @Query("SELECT * FROM Step")
-    List<Step> getAll();
-
     @Query("DELETE FROM Step")
     void nukeTable();
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertIfNotExisting(List<Step> steps);
+
+//    @Query("SELECT * FROM Step")
+//    List<Step> getAll();
 }

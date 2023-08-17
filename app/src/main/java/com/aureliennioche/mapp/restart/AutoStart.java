@@ -1,9 +1,11 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.restart;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+
+import com.aureliennioche.mapp.step.StepService;
 
 public class AutoStart extends BroadcastReceiver {
     String tag = "testing";  // this.getClass().getSimpleName();

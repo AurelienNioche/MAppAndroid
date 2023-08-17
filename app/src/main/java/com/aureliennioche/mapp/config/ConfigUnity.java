@@ -1,4 +1,4 @@
-package com.aureliennioche.mapp;
+package com.aureliennioche.mapp.config;
 
 public class ConfigUnity {
     @SuppressWarnings("unused")

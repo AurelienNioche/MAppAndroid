@@ -6,6 +6,7 @@ import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +30,7 @@ public class Status {
     @Ignore
     public static final String EXPERIMENT_ENDED_AND_ALL_CASH_OUT = "experimentEndedAndAllCashOut";
     @Ignore
+    @JsonIgnore
     public List<Challenge> challenges;
 
     @PrimaryKey(autoGenerate = true)

@@ -86,7 +86,7 @@ public class WebSocketClient extends WebSocketListener {
     }
 
     void backgroundSync() {
-        PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(UploadWorker.class, Config.serverUpdateRepeatInterval, TimeUnit.MINUTES)
+        PeriodicWorkRequest request = new PeriodicWorkRequest.Builder(UploadWorker.class, Config.serverUpdateRepeatInterval, TimeUnit.MILLISECONDS)
                 // Constraints
                 .build();
         WorkManager workManager = WorkManager.getInstance(this.stepService.getBaseContext());
@@ -192,9 +192,9 @@ public class WebSocketClient extends WebSocketListener {
         // Log.d(TAG, "I'll try to sync the server");
 
         if (!profileDao.isProfileSet() || !isOpen() || !Config.updateServer) {
+            Log.d("testing", "Unable to syncing server now");
             return;
         }
-
 
         // Get last step records
         List<Step> newRecord;
@@ -238,7 +238,7 @@ public class WebSocketClient extends WebSocketListener {
         er.appVersion = Config.appVersion;
         er.username = username;
         er.interactions = interactionsJson;
-        er.records = recordsJson;
+        er.steps = recordsJson;
         er.status = statusJson;
         er.unsyncedChallenges = unSyncRewards;
 
@@ -423,9 +423,8 @@ public class WebSocketClient extends WebSocketListener {
     }
 
     public void scheduleSync() {
-        final long SYNC_INTERVAL = TimeUnit.MINUTES.toMillis(Config.serverUpdateRepeatIntervalWhenAppOpened); // 5 minutes in milliseconds
 
-        // Log.d("testing", "Launching sync");
+        Log.d("testing", "Launching sync");
         // Create a handler to run the sync task
         final Handler handler = new Handler();
         Runnable syncTask = new Runnable() {
@@ -436,11 +435,11 @@ public class WebSocketClient extends WebSocketListener {
                 syncServer();
 
                 // Schedule the next sync
-                handler.postDelayed(this, SYNC_INTERVAL);
+                handler.postDelayed(this, Config.serverUpdateRepeatIntervalWhenAppOpened);
             }
         };
 
         // Schedule the first sync
-        handler.postDelayed(syncTask, SYNC_INTERVAL);
+        handler.postDelayed(syncTask, Config.serverUpdateRepeatIntervalWhenAppOpened);
     }
 }

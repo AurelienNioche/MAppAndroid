@@ -60,7 +60,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Log.d(tag, "Creating MainUnityActivity");
+        Log.d("testing", "Creating MainUnityActivity");
 
         // Interfaces to the database
         MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
@@ -107,7 +107,6 @@ public class MainUnityActivity extends UnityPlayerActivity {
         loginOk = false; // Reset flags
         LoginRequest lr = new LoginRequest();
         lr.appVersion = Config.appVersion;
-        lr.resetUser = Config.askServerToResetUser;
         lr.username = username;
         String lrJson = mapper.writeValueAsString(lr);
 

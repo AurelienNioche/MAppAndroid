@@ -172,7 +172,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
 
     void ifWaitingForUserToCashOut(Status status, String userAction) {
         List<Challenge> toCashOut = challengeDao.challengesThatNeedCashOut();
-        if (toCashOut.size() == 0) {
+        if (toCashOut.isEmpty()) {
             status.error = "Error! Waiting for cash out but nothing to cash out!";
         } else if (Objects.equals(userAction, UserAction.CASH_OUT)) {
             // Log.d(tag, "MainUnityActivity => User cashed out");

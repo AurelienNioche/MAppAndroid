@@ -65,7 +65,7 @@ public class MainUnityActivity extends UnityPlayerActivity {
         // Interfaces to the database
         MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
         stepDao = db.stepDao();
-        challengeDao = db.rewardDao();
+        challengeDao = db.challengeDao();
         profileDao = db.profileDao();
         statusDao = db.statusDao();
         interactionDao = db.interactionDao();

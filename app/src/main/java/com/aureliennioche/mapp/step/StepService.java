@@ -61,7 +61,7 @@ public class StepService extends Service implements SensorEventListener {
         // Log.d(tag, "onStartCommand => Creating the service");
         MAppDatabase db = MAppDatabase.getInstance(this.getApplicationContext());
         stepDao = db.stepDao();
-        challengeDao = db.rewardDao();
+        challengeDao = db.challengeDao();
 
         ws = WebSocketClient.getInstance();
         ws.start(this);

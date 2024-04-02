@@ -25,6 +25,9 @@ public interface ChallengeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(Challenge challenge);
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertOrUpdateChallenges(List<Challenge> challenges);
+
     @Query("SELECT * FROM Challenge ORDER BY tsBegin, objective LIMIT 1")
     Challenge getFirstChallenge();
 

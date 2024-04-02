@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
         // Only if upgrade or new install
         if (Config.eraseChallengeTableAfterUpdate) {
             // Log.d(tag, "Deleting previously existing tables");
-            ChallengeDao challengeDao = db.rewardDao();
+            ChallengeDao challengeDao = db.challengeDao();
             challengeDao.nukeTable();
         }
         if (Config.eraseStepTableAfterUpdate) {

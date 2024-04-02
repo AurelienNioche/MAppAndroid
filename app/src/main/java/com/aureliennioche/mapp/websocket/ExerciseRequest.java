@@ -8,5 +8,5 @@ public class ExerciseRequest {
     public String status = "{}";
     public String steps = "[]";
     public String interactions = "[]";
-    public String unsyncedChallenges = "[]";
+    public String unSyncedChallenges = "[]";
 }

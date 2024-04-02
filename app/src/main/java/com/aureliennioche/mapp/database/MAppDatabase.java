@@ -23,7 +23,7 @@ public abstract class MAppDatabase extends RoomDatabase {
     public abstract StatusDao statusDao();
     public abstract ProfileDao profileDao();
     public abstract StepDao stepDao();
-    public abstract ChallengeDao rewardDao();
+    public abstract ChallengeDao challengeDao();
     public abstract InteractionDao interactionDao();
 
     private static MAppDatabase instance;

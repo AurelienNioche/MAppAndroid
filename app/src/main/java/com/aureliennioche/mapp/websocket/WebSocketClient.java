@@ -101,7 +101,7 @@ public class WebSocketClient extends WebSocketListener {
 
         db = MAppDatabase.getInstance(stepService.getApplicationContext());
         stepDao = db.stepDao();
-        challengeDao = db.rewardDao();
+        challengeDao = db.challengeDao();
         profileDao = db.profileDao();
         statusDao = db.statusDao();
         interactionDao = db.interactionDao();
@@ -240,7 +240,7 @@ public class WebSocketClient extends WebSocketListener {
         er.interactions = interactionsJson;
         er.steps = recordsJson;
         er.status = statusJson;
-        er.unsyncedChallenges = unSyncRewards;
+        er.unSyncedChallenges = unSyncRewards;
 
         try {
             String requestJson =  mapper.writeValueAsString(er);
@@ -254,13 +254,23 @@ public class WebSocketClient extends WebSocketListener {
             ExerciseResponse er)
             throws JsonProcessingException {
 
+        // Set the last record timestamp
         serverLastRecordTimestampMillisecond = er.lastActivityTimestampMillisecond;
+        // Set the last interaction timestamp
         serverLastInteractionTimestampMillisecond = er.lastInteractionTimestampMillisecond;
-
+        //
         List<Integer> syncRewardsId = mapper.readValue(er.syncedChallengesId, new TypeReference<List<Integer>>() {});
         List<String> syncRewardsServerTag = mapper.readValue(er.syncedChallengesTag, new TypeReference<List<String>>() {});
 
         challengeDao.updateServerTags(syncRewardsId, syncRewardsServerTag);
+
+        String updatedChallenges = er.updatedChallenges;
+        List<Challenge> challenges = mapper.readValue(updatedChallenges,
+                new TypeReference<List<Challenge>>(){});
+        String tag =  challengeDao.generateStringTag();
+        challenges.forEach(item -> {item.serverTag = tag; item.androidTag = tag;});
+
+        challengeDao.insertOrUpdateChallenges(challenges);
     }
 
     public void handleLoginResponse(

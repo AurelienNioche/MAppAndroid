@@ -5,6 +5,7 @@ public class ExerciseResponse {
     public String subject = "update";
     public long lastActivityTimestampMillisecond = -1;
     public long lastInteractionTimestampMillisecond = -1;
-    public String syncedChallengesId = "[]"; //JSON
-    public String syncedChallengesTag = "[]"; //JSON
+    public String syncedChallengesId = "<to be filled by the server>"; //JSON
+    public String syncedChallengesTag = "<to be filled by the server>"; //JSON
+    public String updatedChallenges = "<to be filled by the server>";  // JSON
 }

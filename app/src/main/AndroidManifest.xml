@@ -18,6 +18,7 @@
         android:background="#000000"
         android:usesCleartextTraffic="true"
         tools:targetApi="33"
+        android:enableOnBackInvokedCallback="true"
         >
         <activity
             android:name=".activity.MainActivity"

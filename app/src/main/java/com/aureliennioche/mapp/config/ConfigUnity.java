@@ -7,5 +7,5 @@ public class ConfigUnity {
     public double loadingViewDelayBeforeNextView = 0.5;
     @SuppressWarnings("unused")
     public String loginInputFieldDefaultUsername = "123test";  // TODO: Be sure to put it to `""` for production
-    //TODO: Check as well the `ConfigAndroid` settings
+    //TODO: Check as well the `Config` settings
 }

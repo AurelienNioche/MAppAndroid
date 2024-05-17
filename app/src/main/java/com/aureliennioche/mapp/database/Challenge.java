@@ -41,4 +41,6 @@ public class Challenge {
     public String serverTag;
     @ColumnInfo
     public String androidTag;
+    @ColumnInfo()
+    public Boolean mutable;
 }

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "44af8654875cec5f23601fc33457d18b",
+    "identityHash": "9f912f6b32df4e87b1defcda77d3d686",
     "entities": [
       {
         "tableName": "status",
@@ -86,7 +86,7 @@
       },
       {
         "tableName": "challenge",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tsBegin` INTEGER NOT NULL, `tsEnd` INTEGER NOT NULL, `tsOfferBegin` INTEGER NOT NULL, `tsOfferEnd` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `stepCount` INTEGER NOT NULL, `amount` REAL NOT NULL, `accepted` INTEGER NOT NULL, `acceptedTs` INTEGER NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `serverTag` TEXT, `androidTag` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tsBegin` INTEGER NOT NULL, `tsEnd` INTEGER NOT NULL, `tsOfferBegin` INTEGER NOT NULL, `tsOfferEnd` INTEGER NOT NULL, `objective` INTEGER NOT NULL, `stepCount` INTEGER NOT NULL, `amount` REAL NOT NULL, `accepted` INTEGER NOT NULL, `acceptedTs` INTEGER NOT NULL, `objectiveReached` INTEGER NOT NULL, `objectiveReachedTs` INTEGER NOT NULL, `cashedOut` INTEGER NOT NULL, `cashedOutTs` INTEGER NOT NULL, `serverTag` TEXT, `androidTag` TEXT, `mutable` INTEGER)",
         "fields": [
           {
             "fieldPath": "id",
@@ -182,6 +182,12 @@
             "fieldPath": "androidTag",
             "columnName": "androidTag",
             "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "mutable",
+            "columnName": "mutable",
+            "affinity": "INTEGER",
             "notNull": false
           }
         ],
@@ -300,7 +306,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '44af8654875cec5f23601fc33457d18b')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9f912f6b32df4e87b1defcda77d3d686')"
     ]
   }
 }

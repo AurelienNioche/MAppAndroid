@@ -416,13 +416,6 @@ public class MainUnityActivity extends UnityPlayerActivity {
         });
         parentNode.set("challenges", mapper.valueToTree(challenges));
         return mapper.writeValueAsString(parentNode);
-
-        // ObjectNode childNode = mapper.createObjectNode();
-        // childNode.set("challenges", mapper.valueToTree(challenges));
-
-        // String toReturn = mapper.writeValueAsString(parentNode);
-        // Log.d(tag, "Status AFTER updating" +toReturn);
-        // Log.d(tag, "Status AFTER updating" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(parentNode));
     }
 
     // ---------------------------------------------------------------------------
